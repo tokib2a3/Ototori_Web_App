@@ -1,79 +1,101 @@
+// DOM要素の取得
 const playButton = document.getElementById("playButton");
 const stopButton = document.getElementById("stopButton");
 const currentTime = document.getElementById("currentTime");
-const totalTime = document.getElementById("totalTime");
+const maxTime = document.getElementById("maxTime");
 const seekBar = document.getElementById("seekBar");
 var video = document.querySelector("video") || document.createElement("video"); // const だとなぜか Safari でうまく動かない
 
 // iOS Safari 対策
+// iOS Safari 対策ここから
 video.setAttribute("muted", "");
 video.setAttribute("playsinline", "");
 video.load();
+// iOS Safari 対策ここまで
 
 
+// オーディオコンテキストの生成
 var audioContext = new AudioContext();
+
+// 各音声データに対応するgainNode, audioBuffer, audioSourceの配列
 var gainNodes = [];
 var audioBuffers = [];
 var audioSources = [];
 
+// 再生状態の初期化
 let isPlaying = false;
+
+// 再生位置の初期化
 let startTime = 0;
 var playPos = 0;
 
+// currentTimeの更新用関数
 let setCurrentTime;
 
+// 読み込み済みの音声ファイルの数
 var loadedAudioCount = 0;
 
+// 読み込み中メッセージの生成とDOMへの追加
+var loadingMessage = document.createElement("p");
+loadingMessage.textContent = `音ファイルを読み込み中 (0 / ${audioUrls.length})`;
+document.body.appendChild(loadingMessage);
+
+// 音声ファイルのfetchとデコードを行う関数
 async function fetchAudio(url) {
   const response = await fetch(url);
   const arrayBuffer = await response.arrayBuffer();
   const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-
   loadingMessage.innerText = `音ファイルを読み込み中 (${++loadedAudioCount} / ${audioUrls.length})`;
-
   return audioBuffer;
 }
 
-var loadingMessage = document.createElement("p");
-loadingMessage.textContent = `音ファイルを読み込み中 (0 / ${audioUrls.length})`;
-document.body.appendChild(loadingMessage);
+// 音量調整用のUIを生成する関数
+function createVolumeControls(gainNode, index) {
+  const fileNameCell = document.createElement("td");
+  fileNameCell.textContent = audioUrls[index].split("/").pop().split(".")[0];;
+
+  const volumeCell = document.createElement("td");
+  const volumeControl = document.createElement("input");
+  volumeControl.type = "range";
+  volumeControl.min = "0";
+  volumeControl.max = "1.28";
+  volumeControl.step = "any";
+  volumeControl.value = "0.8";
+  volumeControl.addEventListener("input", event => {
+    gainNode.gain.value = event.target.value;
+  });
+  volumeCell.appendChild(volumeControl);
+
+  const row = document.createElement("tr");
+  row.appendChild(fileNameCell);
+  row.appendChild(volumeCell);
+  return row;
+}
+
+// 全ての音声ファイルのfetchとデコードを行い、AudioBufferを配列で取得
 Promise.all(audioUrls.map(fetchAudio))
   .then(buffers => {
+    // seekBarの最大値を最初の音声データの長さに設定
     seekBar.max = buffers[0].duration;
-    totalTime.innerText = formatTime(buffers[0].duration);
+    // maxTime の更新
+    maxTime.innerText = formatTime(buffers[0].duration);
+
+    const tableBody = document.getElementById("volumeControls");
+    // 各音声データに対応するgainNodeを生成し、音声ファイルのAudioBufferとセットで配列に追加
     buffers.forEach((buffer, index) => {
       const gainNode = audioContext.createGain();
       gainNodes.push(gainNode);
-
-      const tableBody = document.getElementById("volumeControls");
-
-      const fileNameCell = document.createElement("td");
-      fileNameCell.textContent = audioUrls[index].split("/").pop().split(".")[0];;
-      const row = document.createElement("tr");
-      row.appendChild(fileNameCell);
-
-      const volumeCell = document.createElement("td");
-      const volumeControl = document.createElement("input");
-      volumeControl.type = "range";
-      volumeControl.min = "0";
-      volumeControl.max = "1.28";
-      volumeControl.step = "any";
-      volumeControl.value = "0.8";
-      volumeControl.addEventListener("input", event => {
-        gainNode.gain.value = event.target.value;
-      });
-      volumeCell.appendChild(volumeControl);
-      row.appendChild(volumeCell);
-
-      tableBody.appendChild(row);
-
       audioBuffers.push(buffer);
+
+      tableBody.appendChild(createVolumeControls(gainNode, index))
     });
   })
   .then(() => {
+    // 音声ファイルの読み込みが完了したら、loadingMessageを削除
     document.body.removeChild(loadingMessage);
   })
   .catch(error => {
+    // エラーが発生した場合にエラーメッセージを表示する
     const errorMessage = document.createElement("p");
     errorMessage.textContent = "ファイルの読み込みに失敗しました: " + error.toString();
     document.body.insertBefore(errorMessage, loadingMessage);
@@ -163,10 +185,12 @@ seekBar.addEventListener("change", () => {
   seekBar.blur();
 });
 
+// 時間の表示をフォーマットする関数
 function formatTime(sec) {
   return Math.floor(sec / 60) + ":" + String(Math.floor(sec % 60)).padStart(2, "0")
 }
 
+// 動画の再生準備が整うまで待機するための関数
 function waitForVideo() {
   return new Promise(resolve => {
     const checkIfReady = () => {
@@ -180,6 +204,7 @@ function waitForVideo() {
   });
 }
 
+// 動画の再生開始時に再生位置を修正 (ページから離れて戻ったときのズレを修正)
 video.addEventListener("play", (e) => {
   if (Math.abs(video.currentTime - seekBar.value) > 0.1) {
     video.currentTime = seekBar.value;
