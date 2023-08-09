@@ -4,6 +4,7 @@ const stopButton = document.getElementById("stopButton");
 const currentTime = document.getElementById("currentTime");
 const maxTime = document.getElementById("maxTime");
 const seekBar = document.getElementById("seekBar");
+playButton.disabled = true;
 
 // 動画要素の生成と属性設定
 var video = document.querySelector("video") || document.createElement("video"); // const だとなぜか Safari でうまく動かない
@@ -94,6 +95,7 @@ Promise.all(audioUrls.map(fetchAudio))
   .then(() => {
     // 音声ファイルの読み込みが完了したら、loadingMessageを削除
     document.body.removeChild(loadingMessage);
+    playButton.disabled = false;
   })
   .catch(error => {
     // エラーが発生した場合にエラーメッセージを表示する
