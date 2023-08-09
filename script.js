@@ -151,10 +151,7 @@ function seekAudio(time) {
     video.pause();
     isPlaying = true;
   }
-
   playPos = time;
-  video.currentTime = time;
-
   if (isPlaying) {
     waitForVideo().then(() => {
       playAudio();
@@ -191,6 +188,7 @@ seekBar.addEventListener("input", () => {
 });
 
 seekBar.addEventListener("change", () => {
+  video.currentTime = seekBar.value;
   seekAudio(Number(seekBar.value));
   seekBar.blur();
 });
