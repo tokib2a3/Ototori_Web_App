@@ -5,6 +5,7 @@ const currentTime = document.getElementById("currentTime");
 const maxTime = document.getElementById("maxTime");
 const seekBar = document.getElementById("seekBar");
 playButton.disabled = true;
+stopButton.style.display = "none";
 
 // 動画要素の生成と属性設定
 var video = document.querySelector("video") || document.createElement("video"); // const だとなぜか Safari でうまく動かない
@@ -126,6 +127,8 @@ function playAudio() {
     if (time > seekBar.max) {
       stopAudio();
       playPos = 0;
+      playButton.style.display = "";
+      stopButton.style.display = "none";
     }
   }, 200);
 }
@@ -166,6 +169,8 @@ playButton.addEventListener("click", () => {
       playAudio();
       video.play();
     });
+    playButton.style.display = "none";
+    stopButton.style.display = "";
   } else {
     stopAudio();
     video.pause();
@@ -176,6 +181,8 @@ stopButton.addEventListener("click", () => {
   stopAudio();
   video.pause();
   playPos += audioContext.currentTime + 0.1 - startTime;
+  playButton.style.display = "";
+  stopButton.style.display = "none";
 });
 
 seekBar.addEventListener("input", () => {
