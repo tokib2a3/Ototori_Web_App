@@ -4,15 +4,16 @@ const stopButton = document.getElementById("stopButton");
 const currentTime = document.getElementById("currentTime");
 const maxTime = document.getElementById("maxTime");
 const seekBar = document.getElementById("seekBar");
-var video = document.querySelector("video") || document.createElement("video"); // const だとなぜか Safari でうまく動かない
 
-// iOS Safari 対策
+// 動画要素の生成と属性設定
+var video = document.querySelector("video") || document.createElement("video"); // const だとなぜか Safari でうまく動かない
+video.preload = "auto";
+video.oncontextmenu = () => { return false; }
 // iOS Safari 対策ここから
 video.setAttribute("muted", "");
 video.setAttribute("playsinline", "");
 video.load();
 // iOS Safari 対策ここまで
-
 
 // オーディオコンテキストの生成
 var audioContext = new AudioContext();
@@ -208,6 +209,30 @@ function waitForVideo() {
 video.addEventListener("play", (e) => {
   if (Math.abs(video.currentTime - seekBar.value) > 0.1) {
     video.currentTime = seekBar.value;
+  }
+});
+
+// ダブルクリック/タップで動画を全画面表示
+video.addEventListener("dblclick", function(e) {
+  // 現在全画面表示かチェック
+  if (document.fullscreenElement == video || document.webkitFullscreenElement == video || document.mozFullScreenElement == video) {
+    // そうなら、全画面表示を終了
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    } else if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+    } else if (document.mozCancelFullScreen) {
+      document.mozCancelFullScreen();
+    }
+  } else {
+    // そうでないなら、全画面表示を開始
+    if (video.requestFullscreen) {
+      video.requestFullscreen();
+    } else if (video.webkitRequestFullscreen) {
+      video.webkitRequestFullscreen();
+    } else if (video.mozRequestFullScreen) {
+      video.mozRequestFullScreen();
+    }
   }
 });
 
