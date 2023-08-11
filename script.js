@@ -11,6 +11,7 @@ stopButton.style.display = "none";
 var video = document.querySelector("video"); // const だとなぜか Safari でうまく動かない
 const hasVideo = video != null;
 if (hasVideo) {
+  video.style.width = "100%";
   video.preload = "auto";
   video.oncontextmenu = () => { return false; };
   // iOS Safari 対策ここから
@@ -22,6 +23,21 @@ if (hasVideo) {
   video = {};
   video.play = () => {};
   video.pause = () => {};
+}
+
+// スコア画像のプリロードと、表示要素の属性設定
+var imageArea = document.querySelector("img"); // const だとなぜか Safari でうまく動かない
+const hasImage = imageArea != null;
+if (hasImage) {
+  imageArea.src = images[0].url;
+  imageArea.style.width = "100%";
+  imageArea.oncontextmenu = () => { return false; };
+  imageArea.onselectstart = () => { return false; };
+  imageArea.onmousedown = () => { return false; };
+  for (let i = 0; i < images.length; i++) {  
+    var image = document.createElement("img");
+    image.src = images[i].url;
+  }
 }
 
 // オーディオコンテキストの生成
@@ -137,6 +153,9 @@ function playAudio() {
       playButton.style.display = "";
       stopButton.style.display = "none";
     }
+    if (hasImage) {
+      updateImage(seekBar.value);
+    }
   }, 200);
 }
 
@@ -167,6 +186,15 @@ function seekAudio(time) {
   }
 }
 
+function updateImage(time) {
+  for (let i = 0; i < images.length; i++) {
+    if (time < images[i].end) {
+      imageArea.src = images[i].url;
+      break;
+    }
+  }
+}
+
 playButton.addEventListener("click", () => {
   if (!isPlaying) {
     waitForVideo().then(() => {
@@ -194,11 +222,17 @@ seekBar.addEventListener("input", () => {
   if (hasVideo) {
     video.currentTime = seekBar.value;
   }
+  if (hasImage) {
+    updateImage(seekBar.value);
+  }
 });
 
 seekBar.addEventListener("change", () => {
   if (hasVideo) {
     video.currentTime = seekBar.value;
+  }
+  if (hasImage) {
+    updateImage(seekBar.value);
   }
   seekAudio(Number(seekBar.value));
   seekBar.blur();
@@ -261,6 +295,13 @@ if (hasVideo) {
   // ダブルクリック/タップで動画を全画面表示
   video.addEventListener("dblclick", function(e) {
     toggleFullScreen(video);
+  });
+}
+
+if (hasImage) {
+  // ダブルクリック/タップで画像を全画面表示
+  imageArea.addEventListener("dblclick", function(e) {
+    toggleFullScreen(imageArea);
   });
 }
 
