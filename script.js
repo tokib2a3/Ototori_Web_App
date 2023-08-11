@@ -63,30 +63,30 @@ var loadedAudioCount = 0;
 
 // 読み込み中メッセージの生成とDOMへの追加
 var loadingMessage = document.createElement("p");
-loadingMessage.textContent = `音ファイルを読み込み中 (0 / ${audioUrls.length})`;
+loadingMessage.textContent = `音ファイルを読み込み中 (0 / ${audios.length})`;
 document.body.appendChild(loadingMessage);
 
 // 音声ファイルのfetchとデコードを行う関数
-async function fetchAudio(url) {
-  const response = await fetch(url);
+async function fetchAudio(audio) {
+  const response = await fetch(audio.url);
   const arrayBuffer = await response.arrayBuffer();
   const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-  loadingMessage.innerText = `音ファイルを読み込み中 (${++loadedAudioCount} / ${audioUrls.length})`;
+  loadingMessage.innerText = `音ファイルを読み込み中 (${++loadedAudioCount} / ${audios.length})`;
   return audioBuffer;
 }
 
 // 音量調整用のUIを生成する関数
 function createVolumeControls(gainNode, index) {
   const fileNameCell = document.createElement("td");
-  fileNameCell.textContent = audioUrls[index].split("/").pop().split(".")[0];;
+  fileNameCell.textContent = audios[index].url.split("/").pop().split(".")[0];;
 
   const volumeCell = document.createElement("td");
   const volumeControl = document.createElement("input");
   volumeControl.type = "range";
-  volumeControl.min = "0";
-  volumeControl.max = "1.28";
+  volumeControl.min = 0;
+  volumeControl.max = 1.28;
   volumeControl.step = "any";
-  volumeControl.value = "0.8";
+  volumeControl.value = gainNode.gain.value = audios[index].initialVolume ?? 0.8;
   volumeControl.addEventListener("input", event => {
     gainNode.gain.value = event.target.value;
   });
@@ -99,7 +99,7 @@ function createVolumeControls(gainNode, index) {
 }
 
 // 全ての音声ファイルのfetchとデコードを行い、AudioBufferを配列で取得
-Promise.all(audioUrls.map(fetchAudio))
+Promise.all(audios.map(fetchAudio))
   .then(buffers => {
     // seekBarの最大値を最初の音声データの長さに設定
     seekBar.max = buffers[0].duration;
