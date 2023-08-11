@@ -306,7 +306,7 @@ if (hasImage) {
 }
 
 // バージョン表示
-var version = "1.0.2";
+var version = "1.1.0";
 var versionElement = document.createElement("a");
 versionElement.style.display = "block";
 versionElement.style.position = "fixed";
