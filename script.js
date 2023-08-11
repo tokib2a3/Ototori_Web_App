@@ -129,34 +129,36 @@ Promise.all(audios.map(fetchAudio))
   });
 
 function playAudio() {
-  isPlaying = true;
-  startTime = audioContext.currentTime + 0.1;
+  if (!isPlaying) {
+    isPlaying = true;
+    startTime = audioContext.currentTime + 0.1;
 
-  audioSources = audioBuffers.map((buffer, index) => {
-    const source = audioContext.createBufferSource();
-    source.buffer = buffer;
-    source.connect(gainNodes[index]);
-    gainNodes[index].connect(audioContext.destination);
-    source.start(startTime, playPos);
-    return source;
-  });
+    audioSources = audioBuffers.map((buffer, index) => {
+      const source = audioContext.createBufferSource();
+      source.buffer = buffer;
+      source.connect(gainNodes[index]);
+      gainNodes[index].connect(audioContext.destination);
+      source.start(startTime, playPos);
+      return source;
+    });
 
-  setCurrentTime = setInterval(() => {
-    time = audioContext.currentTime + 0.1 - startTime + playPos;
-    if (document.activeElement != seekBar) {
-      seekBar.value = time;
-      currentTime.innerText = formatTime(time);
-    }
-    if (time > seekBar.max) {
-      stopAudio();
-      playPos = 0;
-      playButton.style.display = "";
-      stopButton.style.display = "none";
-    }
-    if (hasImage) {
-      updateImage(seekBar.value);
-    }
-  }, 200);
+    setCurrentTime = setInterval(() => {
+      time = audioContext.currentTime + 0.1 - startTime + playPos;
+      if (document.activeElement != seekBar) {
+        seekBar.value = time;
+        currentTime.innerText = formatTime(time);
+      }
+      if (time > seekBar.max) {
+        stopAudio();
+        playPos = 0;
+        playButton.style.display = "";
+        stopButton.style.display = "none";
+      }
+      if (hasImage) {
+        updateImage(seekBar.value);
+      }
+    }, 200);
+  }
 }
 
 function stopAudio() {
@@ -172,13 +174,14 @@ function stopAudio() {
 }
 
 function seekAudio(time) {
+  var shouldPlay = false;
   if (isPlaying) {
     stopAudio();
     video.pause();
-    isPlaying = true;
+    shouldPlay = true;
   }
   playPos = time;
-  if (isPlaying) {
+  if (shouldPlay) {
     waitForVideo().then(() => {
       playAudio();
       video.play();
@@ -196,17 +199,12 @@ function updateImage(time) {
 }
 
 playButton.addEventListener("click", () => {
-  if (!isPlaying) {
-    waitForVideo().then(() => {
-      playAudio();
-      video.play();
-    });
-    playButton.style.display = "none";
-    stopButton.style.display = "";
-  } else {
-    stopAudio();
-    video.pause();
-  }
+  waitForVideo().then(() => {
+    playAudio();
+    video.play();
+  });
+  playButton.style.display = "none";
+  stopButton.style.display = "";
 });
 
 stopButton.addEventListener("click", () => {
@@ -263,7 +261,7 @@ function waitForVideo() {
 // 全画面表示をトグルする関数
 function toggleFullScreen(element) {
   // 現在全画面表示かチェック
-  if (document.fullscreenElement == element || document.webkitFullscreenElement == element || document.mozFullScreenElement == element) {
+  if ((document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement) == element) {
     // そうなら、全画面表示を終了
     if (document.exitFullscreen) {
       document.exitFullscreen();
