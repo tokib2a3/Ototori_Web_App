@@ -147,6 +147,7 @@ function playAudio() {
         currentTime.innerText = formatTime(time);
       }
       if (time > seekBar.max) {
+        wakeLock.release();
         stopAudio();
         playPos = 0;
         playButton.style.display = "";
@@ -197,6 +198,7 @@ function updateImage(time) {
 }
 
 playButton.addEventListener("click", () => {
+  requestWakeLock();
   waitForVideo().then(() => {
     playAudio();
     video.play();
@@ -206,6 +208,7 @@ playButton.addEventListener("click", () => {
 });
 
 stopButton.addEventListener("click", () => {
+  wakeLock.release();
   stopAudio();
   video.pause();
   playPos += audioContext.currentTime + 0.1 - startTime;
@@ -279,6 +282,25 @@ function toggleFullScreen(element) {
     }
   }
 }
+
+// スリープ防止
+let wakeLock = null;
+
+const requestWakeLock = async () => {
+  try {
+    wakeLock = await navigator.wakeLock.request("screen");
+  } catch (err) {
+    console.log(`${err.name}, ${err.message}`);
+  }
+}
+
+const handleVisibilityChange = async () => {
+  if (wakeLock != null && document.visibilityState == "visible" && isPlaying) {
+    await requestWakeLock();
+  }
+};
+
+document.addEventListener("visibilitychange", handleVisibilityChange);
 
 if (hasVideo) {
   // 動画の再生開始時に再生位置を修正 (ページから離れて戻ったときのズレを修正)
