@@ -11,7 +11,6 @@ stopButton.style.display = "none";
 var video = document.querySelector("video"); // const だとなぜか Safari でうまく動かない
 const hasVideo = video != null;
 if (hasVideo) {
-  video.style.width = "100%";
   video.preload = "auto";
   video.oncontextmenu = () => { return false; };
   // iOS Safari 対策ここから
@@ -30,7 +29,6 @@ var imageArea = document.querySelector("img"); // const だとなぜか Safari �
 const hasImage = imageArea != null;
 if (hasImage) {
   imageArea.src = images[0].url;
-  imageArea.style.width = "100%";
   imageArea.oncontextmenu = () => { return false; };
   imageArea.onselectstart = () => { return false; };
   imageArea.onmousedown = () => { return false; };
@@ -306,13 +304,7 @@ if (hasImage) {
 // バージョン表示
 var version = "1.1.0";
 var versionElement = document.createElement("a");
-versionElement.style.display = "block";
-versionElement.style.position = "fixed";
-versionElement.style.bottom = "0";
-versionElement.style.right = "0";
-versionElement.style.background = "#ccc";
-versionElement.style.color = "#333";
-versionElement.style.padding = "5px";
+versionElement.classList.add("version");
 versionElement.href = "/ototori/changelog";
-versionElement.innerHTML = "v" + version;
+versionElement.innerText = "v" + version;
 document.body.appendChild(versionElement);

@@ -1,0 +1,21 @@
+video {
+  width: 100%;
+}
+
+img {
+  width: 100%;
+}
+
+th, td {
+  padding: 10px;
+}
+
+.version {
+  display: block;
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  background: #ccc;
+  color: #333;
+  padding: 5px;
+}
