@@ -324,7 +324,7 @@ if (hasImage) {
 }
 
 // バージョン表示
-var version = "1.1.0";
+var version = "1.1.1";
 var versionElement = document.createElement("a");
 versionElement.classList.add("version");
 versionElement.href = "/ototori/changelog";
