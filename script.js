@@ -25,17 +25,37 @@ if (hasVideo) {
 }
 
 // スコア画像のプリロードと、表示要素の属性設定
-var imageArea = document.querySelector("img"); // const だとなぜか Safari でうまく動かない
-const hasImage = imageArea != null;
+const hasImage = typeof images != "undefined";
 if (hasImage) {
-  imageArea.src = images[0].url;
-  imageArea.oncontextmenu = () => { return false; };
-  imageArea.onselectstart = () => { return false; };
-  imageArea.onmousedown = () => { return false; };
+  var imageArea = document.createElement("div");
+  imageArea.id = "imageArea";
+  var img = document.createElement("img");
+  img.src = images[0].url;
+  img.oncontextmenu = () => { return false; };
+  img.onselectstart = () => { return false; };
+  img.onmousedown = () => { return false; };
+  imageArea.appendChild(img);
+  // 画像をプリロード
   for (let i = 0; i < images.length; i++) {  
     var image = document.createElement("img");
     image.src = images[i].url;
   }
+  // カーソル要素を作成
+  var cursor = document.createElement("div");
+  cursor.id = "cursor";
+  imageArea.appendChild(cursor);
+  // spos データを取得
+  var spos;
+  fetch("./media/spos.xml")
+    .then(response => response.text())
+    .then(xmlText => {
+      const parser = new DOMParser();
+      spos = parser.parseFromString(xmlText, "application/xml");
+    })
+    .catch(error => {
+      console.error("Error fetching XML:", error);
+    });
+  document.body.insertBefore(imageArea, playButton);
 }
 
 // オーディオコンテキストの生成
@@ -154,9 +174,9 @@ function playAudio() {
         stopButton.style.display = "none";
       }
       if (hasImage) {
-        updateImage(seekBar.value);
+        updateImage(seekBar.value); // seekBar.value を使えば、シーク時に問題が起きない
       }
-    }, 200);
+    }, 10);
   }
 }
 
@@ -189,11 +209,53 @@ function seekAudio(time) {
 }
 
 function updateImage(time) {
-  for (let i = 0; i < images.length; i++) {
-    if (time < images[i].end) {
-      imageArea.src = images[i].url;
+  var currentTime = (time - (typeof timeOffset == "undefined" ? 0 : timeOffset)) * 1000; // ミリ秒単位に変換
+  if (currentTime < 0) {
+    currentTime = 0;
+  }
+
+  const events = spos.querySelectorAll("event");
+  for (const event of events) {
+    const position = parseFloat(event.getAttribute("position"));
+    if (currentTime >= position) {
+      var elid = parseInt(event.getAttribute("elid"));
+      var currentPosition = position;
+    } else {
+      var nextPosition = position;
       break;
     }
+  }
+  
+  const currentElement = spos.querySelector(`element[id="${elid}"]`) || spos.querySelector(`element[id="${elid - 1}"]`);
+  const nextElement = spos.querySelector(`element[id="${elid + 1}"]`);
+
+  if (currentElement) {
+    const currentX = parseFloat(currentElement.getAttribute("x"));
+    const currentY = parseFloat(currentElement.getAttribute("y"));
+    const sy = parseFloat(currentElement.getAttribute("sy"));
+    const currentPage = parseInt(currentElement.getAttribute("page"));
+    var x = currentX + (30954 - currentX) * (currentTime - currentPosition) / ((seekBar.max - (typeof timeOffset == "undefined" ? 0 : timeOffset)) * 1000 - currentPosition);
+    var y = currentY;
+    if (nextElement) {
+      const nextX = parseFloat(nextElement.getAttribute("x"));
+      const nextY = parseFloat(nextElement.getAttribute("y"));
+      const nextPage = parseInt(nextElement.getAttribute("page"));
+      if (nextY == currentY && nextPage == currentPage) {
+        x = currentX + (nextX - currentX) * (currentTime - currentPosition) / (nextPosition - currentPosition);
+      } else {
+        x = currentX + (30954 - currentX) * (currentTime - currentPosition) / (nextPosition - currentPosition);
+      }
+    }
+
+    const scaleX = img.clientWidth / (12 * img.naturalWidth);
+    const scaleY = img.clientHeight / (12 * img.naturalHeight);
+
+    cursor.style.left = `${x * scaleX}px`;
+    cursor.style.top = `${y * scaleY}px`;
+    cursor.style.width = `${64 * scaleX}px`;
+    cursor.style.height = `${sy * scaleY}px`;
+    
+    img.src = images[currentPage].url;
   }
 }
 
@@ -320,6 +382,11 @@ if (hasImage) {
   // ダブルクリック/タップで画像を全画面表示
   imageArea.addEventListener("dblclick", function(e) {
     toggleFullScreen(imageArea);
+  });
+
+  // 画面リサイズ時にカーソルを再配置
+  window.addEventListener("resize", function(e) {
+    updateImage(seekBar.value);
   });
 }
 

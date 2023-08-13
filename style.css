@@ -6,8 +6,18 @@ video::-webkit-media-controls {
   display: none;
 }
 
+#imageArea {
+  position: relative;
+}
+
 img {
   width: 100%;
+}
+
+#cursor {
+  position: absolute;
+  background-color: blue;
+  opacity: 0.5;
 }
 
 th, td {
