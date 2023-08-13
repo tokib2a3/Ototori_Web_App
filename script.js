@@ -76,7 +76,7 @@ async function fetchAudio(audio) {
 // 音量調整用のUIを生成する関数
 function createVolumeControls(gainNode, index) {
   const fileNameCell = document.createElement("td");
-  fileNameCell.textContent = audios[index].url.split("/").pop().split(".")[0];;
+  fileNameCell.textContent = audios[index].url.split("/").pop().split(".")[0];
 
   const volumeCell = document.createElement("td");
   const volumeControl = document.createElement("input");
