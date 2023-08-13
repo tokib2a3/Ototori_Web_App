@@ -27,6 +27,8 @@ if (hasVideo) {
 // スコア画像のプリロードと、表示要素の属性設定
 const hasImage = typeof images != "undefined";
 if (hasImage) {
+  var imageContainer = document.createElement("div");
+  imageContainer.id = "imageContainer";
   var imageArea = document.createElement("div");
   imageArea.id = "imageArea";
   var img = document.createElement("img");
@@ -55,7 +57,8 @@ if (hasImage) {
     .catch(error => {
       console.error("Error fetching XML:", error);
     });
-  document.body.insertBefore(imageArea, playButton);
+  imageContainer.appendChild(imageArea);
+  document.body.insertBefore(imageContainer, playButton);
 }
 
 // オーディオコンテキストの生成
@@ -380,8 +383,8 @@ if (hasVideo) {
 
 if (hasImage) {
   // ダブルクリック/タップで画像を全画面表示
-  imageArea.addEventListener("dblclick", function(e) {
-    toggleFullScreen(imageArea);
+  imageContainer.addEventListener("dblclick", function(e) {
+    toggleFullScreen(imageContainer);
   });
 
   // 画面リサイズ時にカーソルを再配置
