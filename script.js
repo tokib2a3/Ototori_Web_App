@@ -7,23 +7,6 @@ const seekBar = document.getElementById("seekBar");
 playButton.disabled = true;
 stopButton.style.display = "none";
 
-// 動画要素の生成と属性設定
-var video = document.querySelector("video"); // const だとなぜか Safari でうまく動かない
-const hasVideo = video != null;
-if (hasVideo) {
-  video.preload = "auto";
-  video.oncontextmenu = () => { return false; };
-  // iOS Safari 対策ここから
-  video.setAttribute("muted", "");
-  video.setAttribute("playsinline", "");
-  video.load();
-  // iOS Safari 対策ここまで
-} else {
-  video = {};
-  video.play = () => {};
-  video.pause = () => {};
-}
-
 // スコア画像のプリロードと、表示要素の属性設定
 const hasImage = typeof images != "undefined";
 if (hasImage) {
@@ -197,15 +180,11 @@ function seekAudio(time) {
   var shouldPlay = false;
   if (isPlaying) {
     stopAudio();
-    video.pause();
     shouldPlay = true;
   }
   playPos = time;
   if (shouldPlay) {
-    waitForVideo().then(() => {
-      playAudio();
-      video.play();
-    });
+    playAudio();
   }
 }
 
@@ -262,10 +241,7 @@ function updateImage(time) {
 
 playButton.addEventListener("click", () => {
   requestWakeLock();
-  waitForVideo().then(() => {
-    playAudio();
-    video.play();
-  });
+  playAudio();
   playButton.style.display = "none";
   stopButton.style.display = "";
 });
@@ -273,7 +249,6 @@ playButton.addEventListener("click", () => {
 stopButton.addEventListener("click", () => {
   wakeLock.release();
   stopAudio();
-  video.pause();
   playPos += audioContext.currentTime + 0.1 - startTime;
   playButton.style.display = "";
   stopButton.style.display = "none";
@@ -282,18 +257,12 @@ stopButton.addEventListener("click", () => {
 seekBar.addEventListener("input", () => {
   clearInterval(setCurrentTime);
   currentTime.innerText = formatTime(seekBar.value);
-  if (hasVideo) {
-    video.currentTime = seekBar.value;
-  }
   if (hasImage) {
     updateImage(seekBar.value);
   }
 });
 
 seekBar.addEventListener("change", () => {
-  if (hasVideo) {
-    video.currentTime = seekBar.value;
-  }
   if (hasImage) {
     updateImage(seekBar.value);
   }
@@ -303,23 +272,6 @@ seekBar.addEventListener("change", () => {
 // 時間の表示をフォーマットする関数
 function formatTime(sec) {
   return Math.floor(sec / 60) + ":" + String(Math.floor(sec % 60)).padStart(2, "0")
-}
-
-// 動画の再生準備が整うまで待機するための関数
-function waitForVideo() {
-  if (!hasVideo) {
-    return Promise.resolve();
-  }
-  return new Promise(resolve => {
-    const checkIfReady = () => {
-      if (video.readyState == 4) {
-        resolve();
-      } else {
-        setTimeout(checkIfReady, 200);
-      }
-    };
-    checkIfReady();
-  });
 }
 
 // 全画面表示をトグルする関数
@@ -364,20 +316,6 @@ const handleVisibilityChange = async () => {
 };
 
 document.addEventListener("visibilitychange", handleVisibilityChange);
-
-if (hasVideo) {
-  // 動画の再生開始時に再生位置を修正 (ページから離れて戻ったときのズレを修正)
-  video.addEventListener("play", () => {
-    if (Math.abs(video.currentTime - seekBar.value) > 0.1) {
-      video.currentTime = seekBar.value;
-    }
-  });
-
-  // ダブルクリック/タップで動画を全画面表示
-  video.addEventListener("dblclick", () => {
-    toggleFullScreen(video);
-  });
-}
 
 if (hasImage) {
   // ダブルクリック/タップで画像を全画面表示

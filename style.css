@@ -1,11 +1,3 @@
-video {
-  width: 100%;
-}
-
-video::-webkit-media-controls {
-  display: none;
-}
-
 #imageContainer {
   display: flex;
   align-items: center;
