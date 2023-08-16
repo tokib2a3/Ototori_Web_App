@@ -369,26 +369,26 @@ document.addEventListener("visibilitychange", handleVisibilityChange);
 
 if (hasVideo) {
   // 動画の再生開始時に再生位置を修正 (ページから離れて戻ったときのズレを修正)
-  video.addEventListener("play", (e) => {
+  video.addEventListener("play", () => {
     if (Math.abs(video.currentTime - seekBar.value) > 0.1) {
       video.currentTime = seekBar.value;
     }
   });
 
   // ダブルクリック/タップで動画を全画面表示
-  video.addEventListener("dblclick", function(e) {
+  video.addEventListener("dblclick", () => {
     toggleFullScreen(video);
   });
 }
 
 if (hasImage) {
   // ダブルクリック/タップで画像を全画面表示
-  imageContainer.addEventListener("dblclick", function(e) {
+  imageContainer.addEventListener("dblclick", () => {
     toggleFullScreen(imageContainer);
   });
 
   // 画面リサイズ時にカーソルを再配置
-  window.addEventListener("resize", function(e) {
+  window.addEventListener("resize", () => {
     updateImage(seekBar.value);
   });
 }
