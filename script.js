@@ -165,10 +165,8 @@ function playAudio() {
 
     setCurrentTime = setInterval(() => {
       time = audioContext.currentTime + 0.1 - startTime + playPos;
-      if (document.activeElement != seekBar) {
-        seekBar.value = time;
-        currentTime.innerText = formatTime(time);
-      }
+      seekBar.value = time;
+      currentTime.innerText = formatTime(time);
       if (time > seekBar.max) {
         wakeLock.release();
         stopAudio();
@@ -177,7 +175,7 @@ function playAudio() {
         stopButton.style.display = "none";
       }
       if (hasImage) {
-        updateImage(seekBar.value); // seekBar.value を使えば、シーク時に問題が起きない
+        updateImage(time);
       }
     }, 10);
   }
@@ -282,6 +280,7 @@ stopButton.addEventListener("click", () => {
 });
 
 seekBar.addEventListener("input", () => {
+  clearInterval(setCurrentTime);
   currentTime.innerText = formatTime(seekBar.value);
   if (hasVideo) {
     video.currentTime = seekBar.value;
@@ -299,7 +298,6 @@ seekBar.addEventListener("change", () => {
     updateImage(seekBar.value);
   }
   seekAudio(Number(seekBar.value));
-  seekBar.blur();
 });
 
 // 時間の表示をフォーマットする関数
