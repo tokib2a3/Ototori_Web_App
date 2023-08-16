@@ -392,7 +392,7 @@ if (hasImage) {
 }
 
 // バージョン表示
-var version = "1.2.0";
+var version = "1.2.1";
 var versionElement = document.createElement("a");
 versionElement.classList.add("version");
 versionElement.href = "/ototori/changelog";
