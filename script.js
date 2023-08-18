@@ -359,7 +359,7 @@ if ("serviceWorker" in navigator) {
 }
 
 // バージョン表示
-var version = "1.2.1";
+var version = "2.0.0";
 var versionElement = document.createElement("a");
 versionElement.classList.add("version");
 versionElement.href = "/ototori/changelog";
