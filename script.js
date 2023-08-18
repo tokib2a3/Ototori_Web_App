@@ -232,13 +232,17 @@ function updateImage(time) {
       }
     }
 
-    const scaleX = img.clientWidth / (12 * img.naturalWidth);
-    const scaleY = img.clientHeight / (12 * img.naturalHeight);
+    // Safari は SVG 画像の naturalWidth, naturalHeight を正しく取得できないらしい
+    // const scaleX = img.clientWidth / (12 * img.naturalWidth);
+    // const scaleY = img.clientHeight / (12 * img.naturalHeight);
+    const scaleX = img.width / (12 * 2721.26);
+    const scaleY = img.height / (12 * 1530.71);
+    const scale = Math.min(scaleX, scaleY);
 
-    cursor.style.left = `${x * scaleX}px`;
-    cursor.style.top = `${y * scaleY}px`;
-    cursor.style.width = `${64 * scaleX}px`;
-    cursor.style.height = `${sy * scaleY}px`;
+    cursor.style.left = `${x * scale}px`;
+    cursor.style.top = `${y * scale}px`;
+    cursor.style.width = `${64 * scale}px`;
+    cursor.style.height = `${sy * scale}px`;
     
     img.src = imageUrls[currentPage];
   }
