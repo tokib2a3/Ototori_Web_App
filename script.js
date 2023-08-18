@@ -334,6 +334,26 @@ if (hasImage) {
   });
 }
 
+// PWA
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").then((reg) => {
+      const sw = reg.installing || reg.waiting || reg.active;
+      if (sw) {
+        const data = {
+          type: "CACHE_URLS",
+          payload: [
+            location.href,
+            ...performance.getEntriesByType("resource").map((r) => r.name)
+          ]
+        };
+        sw.postMessage(data);
+      }
+    })
+    .catch((err) => console.log("SW registration FAIL:", err));
+  });
+}
+
 // バージョン表示
 var version = "1.2.1";
 var versionElement = document.createElement("a");
