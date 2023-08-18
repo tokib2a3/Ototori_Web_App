@@ -8,22 +8,27 @@ playButton.disabled = true;
 stopButton.style.display = "none";
 
 // スコア画像のプリロードと、表示要素の属性設定
-const hasImage = typeof images != "undefined";
+const hasImage = typeof imageCount != "undefined" && imageCount > 0;
 if (hasImage) {
+  // 画像URLの配列を生成
+  var imageUrls = [];
+  for (let i = 1; i <= imageCount; i++) {
+    imageUrls.push(`./media/score-${i}.svg`);
+  }
   var imageContainer = document.createElement("div");
   imageContainer.id = "imageContainer";
   var imageArea = document.createElement("div");
   imageArea.id = "imageArea";
   var img = document.createElement("img");
-  img.src = images[0].url;
+  img.src = imageUrls[0];
   img.oncontextmenu = () => { return false; };
   img.onselectstart = () => { return false; };
   img.onmousedown = () => { return false; };
   imageArea.appendChild(img);
   // 画像をプリロード
-  for (let i = 0; i < images.length; i++) {  
+  for (let i = 0; i < imageUrls.length; i++) {  
     var image = document.createElement("img");
-    image.src = images[i].url;
+    image.src = imageUrls[i];
   }
   // カーソル要素を作成
   var cursor = document.createElement("div");
@@ -235,7 +240,7 @@ function updateImage(time) {
     cursor.style.width = `${64 * scaleX}px`;
     cursor.style.height = `${sy * scaleY}px`;
     
-    img.src = images[currentPage].url;
+    img.src = imageUrls[currentPage];
   }
 }
 
