@@ -3,7 +3,7 @@ self.addEventListener("install", (event) => {
   event.waitUntil(self.skipWaiting());
 });
 
-// 古いバージョンのキャッシュを削除
+// 古いバージョンのキャッシュを削除し、新しいバージョンのキャッシュを作成
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
@@ -17,6 +17,15 @@ self.addEventListener("activate", (event) => {
       );
     })
   );
+  // window にメッセージを送信
+  self.clients.claim();
+  clients.matchAll().then((clients) => {
+    clients.forEach((client) => {
+      client.postMessage({
+        type: "ACTIVATED"
+      });
+    });
+  });
 });
 
 // ファイルをキャッシュ
