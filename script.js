@@ -364,7 +364,7 @@ if ("serviceWorker" in navigator) {
 }
 
 // バージョン表示
-var version = "2.0.0";
+var version = "2.0.1";
 var versionElement = document.createElement("a");
 versionElement.classList.add("version");
 versionElement.href = "/ototori/changelog";
