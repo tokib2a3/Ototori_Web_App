@@ -156,7 +156,9 @@ function playAudio() {
       seekBar.value = time;
       currentTime.innerText = formatTime(time);
       if (time > seekBar.max) {
-        wakeLock.release();
+        if (wakeLock) {
+          wakeLock.release();
+        }
         stopAudio();
         playPos = 0;
         playButton.style.display = "";
@@ -256,7 +258,9 @@ playButton.addEventListener("click", () => {
 });
 
 stopButton.addEventListener("click", () => {
-  wakeLock.release();
+  if (wakeLock) {
+    wakeLock.release();
+  }
   stopAudio();
   playPos += audioContext.currentTime + 0.1 - startTime;
   playButton.style.display = "";
