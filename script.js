@@ -97,6 +97,55 @@ controllerArea.appendChild(fullscreenButton);
 
 appArea.appendChild(controllerArea);
 
+// ミキサーダイアログを作成
+const mixerDialog = document.createElement("md-dialog");
+mixerDialog.id = "mixerDialog";
+
+// headline
+const headline = document.createElement("div");
+headline.setAttribute("slot", "headline");
+headline.textContent = "ミキサー";
+mixerDialog.appendChild(headline);
+
+// content
+const form = document.createElement("form");
+form.setAttribute("slot", "content");
+form.id = "mixer";
+form.method = "dialog";
+
+// テーブル
+const table = document.createElement("table");
+const thead = document.createElement("thead");
+const trHeader = document.createElement("tr");
+const th1 = document.createElement("th");
+th1.textContent = "パート";
+const th2 = document.createElement("th");
+th2.textContent = "ミュート";
+const th3 = document.createElement("th");
+th3.textContent = "音量";
+trHeader.appendChild(th1);
+trHeader.appendChild(th2);
+trHeader.appendChild(th3);
+thead.appendChild(trHeader);
+table.appendChild(thead);
+const tbody = document.createElement("tbody");
+tbody.id = "volumeControls";
+table.appendChild(tbody);
+form.appendChild(table);
+
+mixerDialog.appendChild(form);
+
+// actions
+const actionsSlot = document.createElement("div");
+actionsSlot.setAttribute("slot", "actions");
+const textButton = document.createElement("md-text-button");
+textButton.setAttribute("form", "mixer");
+textButton.textContent = "OK";
+actionsSlot.appendChild(textButton);
+mixerDialog.appendChild(actionsSlot);
+
+appArea.appendChild(mixerDialog);
+
 // オーディオコンテキストの生成
 var audioContext = new AudioContext();
 
@@ -137,20 +186,34 @@ function createVolumeControls(gainNode, index) {
   const fileNameCell = document.createElement("td");
   fileNameCell.textContent = audios[index].url.split("/").pop().split(".")[0];
 
-  const volumeCell = document.createElement("td");
-  const volumeControl = document.createElement("input");
-  volumeControl.type = "range";
-  volumeControl.min = 0;
-  volumeControl.max = 1.28;
-  volumeControl.step = "any";
-  volumeControl.value = gainNode.gain.value = audios[index].initialVolume ?? 0.8;
-  volumeControl.addEventListener("input", event => {
-    gainNode.gain.value = event.target.value;
+  const switchCell = document.createElement("td");
+  const muteSwitch = document.createElement("md-switch");
+  muteSwitch.selected = true;
+  muteSwitch.addEventListener("change", (event) => {
+    if (event.target.selected) {
+      gainNode.gain.value = volumeSlider.value / 100;
+      volumeSlider.disabled = false;
+    } else {
+      gainNode.gain.value = 0;
+      volumeSlider.disabled = true;
+    }
   });
-  volumeCell.appendChild(volumeControl);
+  switchCell.appendChild(muteSwitch);
+
+  const volumeCell = document.createElement("td");
+  const volumeSlider = document.createElement("md-slider");
+  volumeSlider.labeled = true;
+  volumeSlider.max = 127;
+  volumeSlider.value = audios[index].initialVolume ?? 80;
+  gainNode.gain.value = volumeSlider.value / 100;
+  volumeSlider.addEventListener("input", (event) => {
+    gainNode.gain.value = event.target.value / 100;
+  });
+  volumeCell.appendChild(volumeSlider);
 
   const row = document.createElement("tr");
   row.appendChild(fileNameCell);
+  row.appendChild(switchCell);
   row.appendChild(volumeCell);
   return row;
 }
@@ -325,6 +388,7 @@ seekBar.addEventListener("change", () => {
 });
 
 mixerButton.addEventListener("click", () => {
+  mixerDialog.show();
 });
 
 fullscreenButton.addEventListener("click", () => {
