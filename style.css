@@ -28,6 +28,10 @@ img {
   bottom: 0;
 }
 
+#time {
+  flex-shrink: 0;
+}
+
 #seekBar {
   flex-grow: 1;
 }

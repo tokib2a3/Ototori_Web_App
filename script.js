@@ -59,6 +59,7 @@ controllerArea.appendChild(playPauseButton);
 
 // 時間表示
 const timeArea = document.createElement("div");
+timeArea.id = "time";
 const currentTime = document.createElement("span");
 currentTime.textContent = "0:00";
 const slashText = document.createTextNode(" / ");
