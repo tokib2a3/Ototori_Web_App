@@ -296,6 +296,7 @@ function playAudio() {
         }
         stopAudio();
         playPos = 0;
+        playPauseButton.selected = false;
       }
       if (hasImage) {
         updateImage(time);
