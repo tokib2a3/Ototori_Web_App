@@ -42,7 +42,7 @@ th, td {
   padding: 10px;
 }
 
-.version {
+#version {
   display: block;
   position: fixed;
   bottom: 0;
