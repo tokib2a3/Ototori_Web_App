@@ -1,11 +1,5 @@
-// DOM要素の取得
-const playButton = document.getElementById("playButton");
-const stopButton = document.getElementById("stopButton");
-const currentTime = document.getElementById("currentTime");
-const maxTime = document.getElementById("maxTime");
-const seekBar = document.getElementById("seekBar");
-playButton.disabled = true;
-stopButton.style.display = "none";
+// アプリ表示領域
+const appArea = document.getElementById("app");
 
 // スコア画像のプリロードと、表示要素の属性設定
 const hasImage = typeof imageCount != "undefined" && imageCount > 0;
@@ -15,8 +9,6 @@ if (hasImage) {
   for (let i = 1; i <= imageCount; i++) {
     imageUrls.push(`./media/score-${i}.svg`);
   }
-  var imageContainer = document.createElement("div");
-  imageContainer.id = "imageContainer";
   var imageArea = document.createElement("div");
   imageArea.id = "imageArea";
   var img = document.createElement("img");
@@ -45,9 +37,65 @@ if (hasImage) {
     .catch(error => {
       console.error("Error fetching XML:", error);
     });
-  imageContainer.appendChild(imageArea);
-  document.body.insertBefore(imageContainer, playButton);
+  appArea.appendChild(imageArea);
 }
+
+// コントローラーの UI を生成
+const controllerArea = document.createElement("div");
+controllerArea.id = "controller";
+
+// 再生・停止ボタン
+const playPauseButton = document.createElement("md-icon-button");
+playPauseButton.toggle = true;
+playPauseButton.disabled = true;
+const playIcon = document.createElement("md-icon");
+playIcon.textContent = "play_arrow";
+playPauseButton.appendChild(playIcon);
+const pauseIcon = document.createElement("md-icon");
+pauseIcon.slot = "selected";
+pauseIcon.textContent = "pause";
+playPauseButton.appendChild(pauseIcon);
+controllerArea.appendChild(playPauseButton);
+
+// 時間表示
+const timeArea = document.createElement("div");
+const currentTime = document.createElement("span");
+currentTime.textContent = "0:00";
+const slashText = document.createTextNode(" / ");
+const maxTime = document.createElement("span");
+maxTime.textContent = "0:00";
+timeArea.appendChild(currentTime);
+timeArea.appendChild(slashText);
+timeArea.appendChild(maxTime);
+controllerArea.appendChild(timeArea);
+
+// シークバー
+const seekBar = document.createElement("md-slider");
+seekBar.id = "seekBar";
+seekBar.value = "0";
+seekBar.step = "0.1";
+controllerArea.appendChild(seekBar);
+
+// ミキサーボタン
+const mixerButton = document.createElement("md-icon-button");
+const tuneIcon = document.createElement("md-icon");
+tuneIcon.textContent = "tune";
+mixerButton.appendChild(tuneIcon);
+controllerArea.appendChild(mixerButton);
+
+// 全画面表示ボタン
+const fullscreenButton = document.createElement("md-icon-button");
+fullscreenButton.toggle = true;
+const fullscreenIcon = document.createElement("md-icon");
+fullscreenIcon.textContent = "fullscreen";
+fullscreenButton.appendChild(fullscreenIcon);
+const fullscreenExitIcon = document.createElement("md-icon");
+fullscreenExitIcon.slot = "selected";
+fullscreenExitIcon.textContent = "fullscreen_exit";
+fullscreenButton.appendChild(fullscreenExitIcon);
+controllerArea.appendChild(fullscreenButton);
+
+appArea.appendChild(controllerArea);
 
 // オーディオコンテキストの生成
 var audioContext = new AudioContext();
@@ -128,7 +176,7 @@ Promise.all(audios.map(fetchAudio))
   .then(() => {
     // 音声ファイルの読み込みが完了したら、loadingMessageを削除
     document.body.removeChild(loadingMessage);
-    playButton.disabled = false;
+    playPauseButton.disabled = false;
   })
   .catch(error => {
     // エラーが発生した場合にエラーメッセージを表示する
@@ -161,8 +209,6 @@ function playAudio() {
         }
         stopAudio();
         playPos = 0;
-        playButton.style.display = "";
-        stopButton.style.display = "none";
       }
       if (hasImage) {
         updateImage(time);
@@ -250,21 +296,17 @@ function updateImage(time) {
   }
 }
 
-playButton.addEventListener("click", () => {
-  requestWakeLock();
-  playAudio();
-  playButton.style.display = "none";
-  stopButton.style.display = "";
-});
-
-stopButton.addEventListener("click", () => {
-  if (wakeLock) {
-    wakeLock.release();
+playPauseButton.addEventListener("click", () => {
+  if (playPauseButton.selected) {
+    requestWakeLock();
+    playAudio();
+  } else {
+    if (wakeLock) {
+      wakeLock.release();
+    }
+    stopAudio();
+    playPos += audioContext.currentTime + 0.1 - startTime;
   }
-  stopAudio();
-  playPos += audioContext.currentTime + 0.1 - startTime;
-  playButton.style.display = "";
-  stopButton.style.display = "none";
 });
 
 seekBar.addEventListener("input", () => {
@@ -280,6 +322,17 @@ seekBar.addEventListener("change", () => {
     updateImage(seekBar.value);
   }
   seekAudio(Number(seekBar.value));
+});
+
+mixerButton.addEventListener("click", () => {
+});
+
+fullscreenButton.addEventListener("click", () => {
+  toggleFullScreen(appArea);
+});
+
+document.addEventListener("fullscreenchange", () => {
+  fullscreenButton.selected = document.fullscreenElement == appArea;
 });
 
 // 時間の表示をフォーマットする関数
@@ -331,11 +384,6 @@ const handleVisibilityChange = async () => {
 document.addEventListener("visibilitychange", handleVisibilityChange);
 
 if (hasImage) {
-  // ダブルクリック/タップで画像を全画面表示
-  imageContainer.addEventListener("dblclick", () => {
-    toggleFullScreen(imageContainer);
-  });
-
   // 画面リサイズ時にカーソルを再配置
   window.addEventListener("resize", () => {
     updateImage(seekBar.value);
