@@ -26,6 +26,10 @@ img {
 :fullscreen #controller {
   position: absolute;
   bottom: 0;
+
+  &.hide {
+    opacity: 0;
+  }
 }
 
 #time {

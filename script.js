@@ -98,6 +98,29 @@ controllerArea.appendChild(fullscreenButton);
 
 appArea.appendChild(controllerArea);
 
+// コントローラーを表示・非表示
+let controllerTimeout;
+
+document.addEventListener("mousemove", () => {
+  showController();
+  clearTimeout(controllerTimeout);
+  controllerTimeout = setTimeout(hideController, 3000);
+});
+
+document.addEventListener("keydown", () => {
+  showController();
+  clearTimeout(controllerTimeout);
+  controllerTimeout = setTimeout(hideController, 3000);
+});
+
+function showController() {
+  controllerArea.classList.remove("hide");
+}
+
+function hideController() {
+  controllerArea.classList.add("hide");
+}
+
 // ミキサーダイアログを作成
 const mixerDialog = document.createElement("md-dialog");
 mixerDialog.id = "mixerDialog";
