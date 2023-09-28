@@ -45,7 +45,7 @@ th, td {
 #version {
   display: block;
   position: fixed;
-  bottom: 0;
+  top: 0;
   right: 0;
   background: #ccc;
   color: #333;
