@@ -200,7 +200,7 @@ const trHeader = document.createElement("tr");
 const th1 = document.createElement("th");
 th1.textContent = "パート";
 const th2 = document.createElement("th");
-th2.textContent = "ミュート";
+th2.textContent = "再生";
 const th3 = document.createElement("th");
 th3.textContent = "音量";
 trHeader.appendChild(th1);
@@ -268,9 +268,9 @@ function createVolumeControls(gainNode, index) {
   fileNameCell.textContent = audios[index].url.split("/").pop().split(".")[0];
 
   const switchCell = document.createElement("td");
-  const muteSwitch = document.createElement("md-switch");
-  muteSwitch.selected = true;
-  muteSwitch.addEventListener("change", (event) => {
+  const playSwitch = document.createElement("md-switch");
+  playSwitch.selected = true;
+  playSwitch.addEventListener("change", (event) => {
     if (event.target.selected) {
       gainNode.gain.value = volumeSlider.value / 100;
       volumeSlider.disabled = false;
@@ -279,7 +279,7 @@ function createVolumeControls(gainNode, index) {
       volumeSlider.disabled = true;
     }
   });
-  switchCell.appendChild(muteSwitch);
+  switchCell.appendChild(playSwitch);
 
   const volumeCell = document.createElement("td");
   const volumeSlider = document.createElement("md-slider");
