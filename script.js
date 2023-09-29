@@ -142,13 +142,31 @@ let controllerTimeout;
 document.addEventListener("mousemove", () => {
   showController();
   clearTimeout(controllerTimeout);
-  controllerTimeout = setTimeout(hideController, 3000);
+  controllerTimeout = setTimeout(() => {
+    if (playPauseButton.selected && !settingsMenu.open && !mixerDialog.open) {
+      hideController();
+    }
+  }, 3000);
 });
 
 document.addEventListener("keydown", () => {
   showController();
   clearTimeout(controllerTimeout);
-  controllerTimeout = setTimeout(hideController, 3000);
+  controllerTimeout = setTimeout(() => {
+    if (playPauseButton.selected && !settingsMenu.open && !mixerDialog.open) {
+      hideController();
+    }
+  }, 3000);
+});
+
+document.addEventListener("click", () => {
+  showController();
+  clearTimeout(controllerTimeout);
+  controllerTimeout = setTimeout(() => {
+    if (playPauseButton.selected && !settingsMenu.open && !mixerDialog.open) {
+      hideController();
+    }
+  }, 3000);
 });
 
 function showController() {
