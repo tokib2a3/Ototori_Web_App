@@ -269,7 +269,7 @@ function createVolumeControls(gainNode, index) {
 
   const switchCell = document.createElement("td");
   const playSwitch = document.createElement("md-switch");
-  playSwitch.selected = true;
+  playSwitch.selected = audios[index].initialPlay ?? true;
   playSwitch.addEventListener("change", (event) => {
     if (event.target.selected) {
       gainNode.gain.value = volumeSlider.value / 100;
@@ -283,10 +283,11 @@ function createVolumeControls(gainNode, index) {
 
   const volumeCell = document.createElement("td");
   const volumeSlider = document.createElement("md-slider");
+  volumeSlider.disabled = !playSwitch.selected;
   volumeSlider.labeled = true;
   volumeSlider.max = 127;
   volumeSlider.value = audios[index].initialVolume ?? 80;
-  gainNode.gain.value = volumeSlider.value / 100;
+  gainNode.gain.value = playSwitch.selected ? volumeSlider.value / 100 : 0;
   volumeSlider.addEventListener("input", (event) => {
     gainNode.gain.value = event.target.value / 100;
   });
