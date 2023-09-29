@@ -77,12 +77,50 @@ seekBar.value = "0";
 seekBar.step = "0.1";
 controllerArea.appendChild(seekBar);
 
-// ミキサーボタン
-const mixerButton = document.createElement("md-icon-button");
-const tuneIcon = document.createElement("md-icon");
-tuneIcon.textContent = "tune";
-mixerButton.appendChild(tuneIcon);
-controllerArea.appendChild(mixerButton);
+// 設定ボタン
+const settingsWrapper = document.createElement("div");
+settingsWrapper.id = "settingsWrapper";
+const settingsAnchor = document.createElement("md-icon-button");
+settingsAnchor.id = "settingsAnchor";
+const settingsIcon = document.createElement("md-icon");
+settingsIcon.textContent = "settings";
+settingsAnchor.appendChild(settingsIcon);
+settingsWrapper.appendChild(settingsAnchor);
+
+// ミキサー
+const settingsMenu = document.createElement("md-menu");
+settingsMenu.id = "settingsMenu";
+settingsMenu.setAttribute("anchor", "settingsAnchor");
+const mixerButton = document.createElement("md-menu-item");
+mixerButton.id = "mixerButton";
+const mixerHeadline = document.createElement("div");
+mixerHeadline.slot = "headline";
+mixerHeadline.textContent = "ミキサー";
+const mixerIcon = document.createElement("md-icon");
+mixerIcon.slot = "start";
+mixerIcon.textContent = "tune";
+mixerButton.appendChild(mixerHeadline);
+mixerButton.appendChild(mixerIcon);
+settingsMenu.appendChild(mixerButton);
+
+// ループ
+const loopButton = document.createElement("md-menu-item");
+const loopHeadline = document.createElement("div");
+loopHeadline.slot = "headline";
+loopHeadline.textContent = "ループ";
+const loopIcon = document.createElement("md-icon");
+loopIcon.slot = "start";
+loopIcon.textContent = "repeat";
+const loopCheckIcon = document.createElement("md-icon");
+loopCheckIcon.slot = "null";
+loopCheckIcon.textContent = "check";
+loopButton.appendChild(loopHeadline);
+loopButton.appendChild(loopIcon);
+loopButton.appendChild(loopCheckIcon);
+settingsMenu.appendChild(loopButton);
+
+settingsWrapper.appendChild(settingsMenu);
+controllerArea.appendChild(settingsWrapper);
 
 // 全画面表示ボタン
 const fullscreenButton = document.createElement("md-icon-button");
@@ -180,6 +218,7 @@ var audioSources = [];
 
 // 再生状態の初期化
 let isPlaying = false;
+let isLoopEnabled = false;
 
 // 再生位置の初期化
 let startTime = 0;
@@ -296,7 +335,11 @@ function playAudio() {
         }
         stopAudio();
         playPos = 0;
-        playPauseButton.selected = false;
+        if (isLoopEnabled) {
+          playAudio();
+        } else {
+          playPauseButton.selected = false;
+        }
       }
       if (hasImage) {
         updateImage(time);
@@ -411,9 +454,23 @@ seekBar.addEventListener("change", () => {
   }
   seekAudio(Number(seekBar.value));
 });
+    
+settingsAnchor.addEventListener("click", () => {
+  settingsMenu.open = !settingsMenu.open;
+});
 
 mixerButton.addEventListener("click", () => {
   mixerDialog.show();
+});
+
+loopButton.addEventListener("click", () => {
+  if (isLoopEnabled) {
+    isLoopEnabled = false;
+    loopCheckIcon.slot = "null";
+  } else {
+    isLoopEnabled = true;
+    loopCheckIcon.slot = "end";
+  }
 });
 
 fullscreenButton.addEventListener("click", () => {

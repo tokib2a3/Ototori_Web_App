@@ -40,6 +40,14 @@ img {
   flex-grow: 1;
 }
 
+#settingsWrapper {
+  position: relative;
+}
+
+md-menu-item div {
+  word-break: keep-all;
+}
+
 #cursor {
   position: absolute;
   background-color: blue;
