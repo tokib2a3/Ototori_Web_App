@@ -44,7 +44,7 @@ img {
   position: relative;
 }
 
-md-menu-item div {
+md-menu-item {
   word-break: keep-all;
 }
 
