@@ -7,7 +7,7 @@ if (hasImage) {
   // 画像URLの配列を生成
   var imageUrls = [];
   for (let i = 1; i <= imageCount; i++) {
-    imageUrls.push(`./media/score-${i}.svg`);
+    imageUrls.push(`./score/score-${i}.svg`);
   }
   var imageArea = document.createElement("div");
   imageArea.id = "imageArea";
@@ -28,7 +28,7 @@ if (hasImage) {
   imageArea.appendChild(cursor);
   // spos データを取得
   var spos;
-  fetch("./media/spos.xml")
+  fetch("./score/spos.xml")
     .then(response => response.text())
     .then(xmlText => {
       const parser = new DOMParser();
