@@ -38,13 +38,25 @@ if (hasImage) {
   var cursor = document.createElement("div");
   cursor.id = "cursor";
   imageArea.appendChild(cursor);
-  // spos データを取得
-  var spos;
+
+  // spos データを読み込み
+  var spos = {};
   fetch("./score/spos.xml")
     .then(response => response.text())
     .then(xmlText => {
       const parser = new DOMParser();
-      spos = parser.parseFromString(xmlText, "application/xml");
+      xmlDoc = parser.parseFromString(xmlText, "application/xml");
+
+      spos.elements = Array.from(xmlDoc.querySelectorAll("score > elements > element"), (element) => ({
+        x: parseInt(element.getAttribute("x")),
+        y: parseInt(element.getAttribute("y")),
+        sy: parseFloat(element.getAttribute("sy")),
+        page: parseInt(element.getAttribute("page"))
+      }));
+
+      spos.events = Array.from(xmlDoc.querySelectorAll("score > events > event"), (event) => ({
+        position: parseInt(event.getAttribute("position"))
+      }));
     })
     .catch(error => {
       console.error("Error fetching XML:", error);
@@ -397,56 +409,46 @@ function updateDisplay() {
 }
 
 function updateImage(time) {
-  var currentTime = (time - (typeof timeOffset == "undefined" ? 0 : timeOffset)) * 1000; // ミリ秒単位に変換
+  let currentTime = (time - (typeof timeOffset == "undefined" ? 0 : timeOffset)) * 1000; // ミリ秒単位に変換
   if (currentTime < 0) {
     currentTime = 0;
   }
+  const maxTime = (seekBar.max - (typeof timeOffset == "undefined" ? 0 : timeOffset)) * 1000;
 
-  const events = spos.querySelectorAll("event");
-  for (const event of events) {
-    const position = parseFloat(event.getAttribute("position"));
-    if (currentTime >= position) {
-      var elid = parseInt(event.getAttribute("elid"));
-      var currentPosition = position;
-    } else {
-      var nextPosition = position;
-      break;
-    }
-  }
+  const currentElid = spos.events.findIndex(event => event.position > currentTime) - 1;
+  const currentEvent = spos.events[currentElid] || spos.events[spos.events.length - 1];
+  const currentPosition = currentEvent.position;
+  const nextEvent = spos.events[currentElid + 1];
+  const nextPosition = nextEvent ? nextEvent.position : maxTime;
   
-  const currentElement = spos.querySelector(`element[id="${elid}"]`) || spos.querySelector(`element[id="${elid - 1}"]`);
-  const nextElement = spos.querySelector(`element[id="${elid + 1}"]`);
+  const currentElement = spos.elements[currentElid] || spos.elements[spos.elements.length - 1];
+  const nextElement = spos.elements[currentElid + 1];
 
-  if (currentElement) {
-    const currentX = parseFloat(currentElement.getAttribute("x"));
-    const currentY = parseFloat(currentElement.getAttribute("y"));
-    const sy = parseFloat(currentElement.getAttribute("sy"));
-    const currentPage = parseInt(currentElement.getAttribute("page"));
-    var x = currentX + (30954 - currentX) * (currentTime - currentPosition) / ((seekBar.max - (typeof timeOffset == "undefined" ? 0 : timeOffset)) * 1000 - currentPosition);
-    var y = currentY;
-    if (nextElement) {
-      const nextX = parseFloat(nextElement.getAttribute("x"));
-      const nextY = parseFloat(nextElement.getAttribute("y"));
-      const nextPage = parseInt(nextElement.getAttribute("page"));
-      if (nextY == currentY && nextPage == currentPage) {
-        x = currentX + (nextX - currentX) * (currentTime - currentPosition) / (nextPosition - currentPosition);
-      } else {
-        x = currentX + (30954 - currentX) * (currentTime - currentPosition) / (nextPosition - currentPosition);
-      }
-    }
+  const currentX = currentElement.x;
+  const currentY = currentElement.y;
+  const sy = currentElement.sy;
+  const currentPage = currentElement.page;
 
-    // Safari は SVG 画像の naturalWidth, naturalHeight を正しく取得できないらしい
-    // const scaleX = img.clientWidth / (12 * img.naturalWidth);
-    // const scaleY = img.clientHeight / (12 * img.naturalHeight);
-    const scaleX = img.width / (12 * 2721.26);
-    const scaleY = img.height / (12 * 1530.71);
-    const scale = Math.min(scaleX, scaleY);
+  const nextY = nextElement ? nextElement.y : currentY;
+  const nextPage = nextElement ? nextElement.page : currentPage;
+  const nextX = nextElement && nextY == currentY && nextPage == currentPage ? nextElement.x : 30954;
 
-    cursor.style.left = `${x * scale}px`;
-    cursor.style.top = `${y * scale}px`;
-    cursor.style.width = `${64 * scale}px`;
-    cursor.style.height = `${sy * scale}px`;
-    
+  const x = currentX + (nextX - currentX) * (currentTime - currentPosition) / (nextPosition - currentPosition);
+  const y = currentY;
+
+  // Safari は SVG 画像の naturalWidth, naturalHeight を正しく取得できないらしい
+  // const scaleX = img.clientWidth / (12 * img.naturalWidth);
+  // const scaleY = img.clientHeight / (12 * img.naturalHeight);
+  const scaleX = img.width / (12 * 2721.26);
+  const scaleY = img.height / (12 * 1530.71);
+  const scale = Math.min(scaleX, scaleY);
+
+  cursor.style.left = `${x * scale}px`;
+  cursor.style.top = `${y * scale}px`;
+  cursor.style.width = `${64 * scale}px`;
+  cursor.style.height = `${sy * scale}px`;
+  
+  if (img.src != imageUrls[currentPage]) {
     img.src = imageUrls[currentPage];
   }
 }
