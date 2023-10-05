@@ -135,17 +135,11 @@ appArea.appendChild(controllerArea);
 // コントローラーを表示・非表示
 let controllerTimeout;
 
-document.addEventListener("mousemove", () => {
-  showController();
-  clearTimeout(controllerTimeout);
-  controllerTimeout = setTimeout(() => {
-    if (playPauseButton.selected && !settingsMenu.open && !mixerDialog.open) {
-      hideController();
-    }
-  }, 3000);
-});
+document.addEventListener("mousemove", handleUserActivity);
+document.addEventListener("keydown", handleUserActivity);
+document.addEventListener("click", handleUserActivity);
 
-document.addEventListener("keydown", () => {
+function handleUserActivity() {
   showController();
   clearTimeout(controllerTimeout);
   controllerTimeout = setTimeout(() => {
@@ -153,17 +147,7 @@ document.addEventListener("keydown", () => {
       hideController();
     }
   }, 3000);
-});
-
-document.addEventListener("click", () => {
-  showController();
-  clearTimeout(controllerTimeout);
-  controllerTimeout = setTimeout(() => {
-    if (playPauseButton.selected && !settingsMenu.open && !mixerDialog.open) {
-      hideController();
-    }
-  }, 3000);
-});
+}
 
 function showController() {
   controllerArea.classList.remove("hide");
