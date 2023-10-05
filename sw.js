@@ -13,10 +13,10 @@ const NETWORK_FIRST = [
 
 // インストール処理
 self.addEventListener("install", (e) => {
-  console.log("[Service Worker] Install");
+  // console.log("[Service Worker] Install");
   e.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log("[Service Worker] Caching all: app shell and content");
+      // console.log("[Service Worker] Caching all: app shell and content");
       return cache.addAll(APP_FILES);
     }),
   );
@@ -44,14 +44,12 @@ self.addEventListener("fetch", (e) => {
     // アプリファイルの場合は取得後にキャッシュに登録
     e.respondWith(
       caches.match(e.request).then((r) => {
-        console.log("[Service Worker] Fetching resource: " + e.request.url);
+        // console.log("[Service Worker] Fetching resource: " + e.request.url);
         return (
           r ||
           fetch(e.request).then((response) => {
             return caches.open(CACHE_NAME).then((cache) => {
-              console.log(
-                "[Service Worker] Caching new resource: " + e.request.url,
-              );
+              // console.log("[Service Worker] Caching new resource: " + e.request.url);
               cache.put(e.request, response.clone());
               return response;
             });
@@ -63,16 +61,14 @@ self.addEventListener("fetch", (e) => {
     // ネットワーク優先
     e.respondWith(
       fetch(e.request).then((response) => {
-        console.log("[Service Worker] Fetching resource: " + e.request.url);
+        // console.log("[Service Worker] Fetching resource: " + e.request.url);
         return caches.open(CACHE_NAME).then((cache) => {
-          console.log(
-            "[Service Worker] Caching new resource: " + e.request.url,
-          );
+          // console.log("[Service Worker] Caching new resource: " + e.request.url);
           cache.put(e.request, response.clone());
           return response;
         });
       }).catch(() => {        
-        console.log("[Service Worker] Caching new resource: " + e.request.url);
+        // console.log("[Service Worker] Caching new resource: " + e.request.url);
         return caches.match(e.request);
       }),
     );
@@ -80,7 +76,7 @@ self.addEventListener("fetch", (e) => {
     // それ以外はキャッシュ優先で取得するだけ
     e.respondWith(
       caches.match(e.request).then((r) => {
-        console.log("[Service Worker] Fetching resource: " + e.request.url);
+        // console.log("[Service Worker] Fetching resource: " + e.request.url);
         return r || fetch(e.request);
       }),
     );
