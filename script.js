@@ -223,7 +223,7 @@ let startTime = 0;
 var playPos = 0;
 
 // currentTimeの更新用関数
-let setCurrentTime;
+let updateDisplayLoop;
 
 // 読み込み済みの音声ファイルの数
 var loadedAudioCount = 0;
@@ -324,26 +324,7 @@ function playAudio() {
       return source;
     });
 
-    setCurrentTime = setInterval(() => {
-      time = audioContext.currentTime + 0.1 - startTime + playPos;
-      seekBar.value = time;
-      currentTime.innerText = formatTime(time);
-      if (time > seekBar.max) {
-        if (wakeLock) {
-          wakeLock.release();
-        }
-        stopAudio();
-        playPos = 0;
-        if (isLoopEnabled) {
-          playAudio();
-        } else {
-          playPauseButton.selected = false;
-        }
-      }
-      if (hasImage) {
-        updateImage(time);
-      }
-    }, 10);
+    updateDisplayLoop = createAnimationFrameLoop(updateDisplay);
   }
 }
 
@@ -356,7 +337,7 @@ function stopAudio() {
 
   audioSources = [];
 
-  clearInterval(setCurrentTime);
+  cancelAnimationFrame(updateDisplayLoop.id);
 }
 
 function seekAudio(time) {
@@ -368,6 +349,38 @@ function seekAudio(time) {
   playPos = time;
   if (shouldPlay) {
     playAudio();
+  }
+}
+
+// 画面の更新関連
+function createAnimationFrameLoop(func) {
+  let handler = {};
+  function loop() {
+    handler.id = requestAnimationFrame(loop);
+    func();
+  }
+  handler.id = requestAnimationFrame(loop);
+  return handler;
+}
+
+function updateDisplay() {
+  time = audioContext.currentTime + 0.1 - startTime + playPos;
+  seekBar.value = time;
+  currentTime.innerText = formatTime(time);
+  if (time > seekBar.max) {
+    if (wakeLock) {
+      wakeLock.release();
+    }
+    stopAudio();
+    playPos = 0;
+    if (isLoopEnabled) {
+      playAudio();
+    } else {
+      playPauseButton.selected = false;
+    }
+  }
+  if (hasImage) {
+    updateImage(time);
   }
 }
 
@@ -440,7 +453,7 @@ playPauseButton.addEventListener("click", () => {
 });
 
 seekBar.addEventListener("input", () => {
-  clearInterval(setCurrentTime);
+  cancelAnimationFrame(updateDisplayLoop.id);
   currentTime.innerText = formatTime(seekBar.value);
   if (hasImage) {
     updateImage(seekBar.value);
