@@ -9,7 +9,9 @@ if (hasImage) {
   for (let i = 1; i <= imageCount; i++) {
     imageUrls.push(`./score/score-${i}.svg`);
   }
-  var imageArea = document.createElement("div");
+
+  // 画像表示領域を作成
+  const imageArea = document.createElement("div");
   imageArea.id = "imageArea";
   var img = document.createElement("img");
   img.src = imageUrls[0];
@@ -17,11 +19,21 @@ if (hasImage) {
   img.onselectstart = () => { return false; };
   img.onmousedown = () => { return false; };
   imageArea.appendChild(img);
-  // 画像をプリロード
-  for (let i = 0; i < imageUrls.length; i++) {  
-    var image = document.createElement("img");
-    image.src = imageUrls[i];
+
+  // 画像を非同期にプリロードする関数
+  async function preloadImages(urls) {
+    const promises = urls.map(url => new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = resolve;
+      image.onerror = reject;
+      image.src = url;
+    }));
+    return Promise.all(promises);
   }
+
+  // 画像を非同期にプリロード
+  preloadImages(imageUrls);
+
   // カーソル要素を作成
   var cursor = document.createElement("div");
   cursor.id = "cursor";
