@@ -392,14 +392,14 @@ function updateDisplay() {
   seekBar.value = time;
   currentTime.innerText = formatTime(time);
   if (time > seekBar.max) {
-    if (wakeLock) {
-      wakeLock.release();
-    }
     stopAudio();
     playPos = 0;
     if (isLoopEnabled) {
       playAudio();
     } else {
+      if (wakeLock) {
+        wakeLock.release();
+      }
       playPauseButton.selected = false;
     }
   }
