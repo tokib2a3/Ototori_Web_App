@@ -361,7 +361,10 @@ function stopAudio() {
 
   audioSources = [];
 
-  cancelAnimationFrame(updateDisplayLoop.id);
+  if (updateDisplayLoop) {
+    cancelAnimationFrame(updateDisplayLoop.id);
+    updateDisplayLoop = null;
+  }
 }
 
 function seekAudio(time) {
@@ -467,7 +470,10 @@ playPauseButton.addEventListener("click", () => {
 });
 
 seekBar.addEventListener("input", () => {
-  cancelAnimationFrame(updateDisplayLoop.id);
+  if (updateDisplayLoop) {
+    cancelAnimationFrame(updateDisplayLoop.id);
+    updateDisplayLoop = null;
+  }
   currentTime.innerText = formatTime(seekBar.value);
   if (hasImage) {
     updateImage(seekBar.value);
