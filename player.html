@@ -1,0 +1,52 @@
+<div id="imageArea">
+  <div id="cursor"></div>
+</div>
+<div id="controller">
+  <md-icon-button id="playPauseButton" toggle disabled>
+    <md-icon>play_arrow</md-icon>
+    <md-icon slot="selected">pause</md-icon>
+  </md-icon-button>
+  <div id="time">
+    <span id="currentTime">0:00</span> / <span id="maxTime">0:00</span>
+  </div>
+  <md-slider id="seekBar" value="0" step="0.1" disabled></md-slider>
+  <div id="settingsWrapper">
+    <md-icon-button id="settingsButton">
+      <md-icon>settings</md-icon>
+    </md-icon-button>
+    <md-menu id="settingsMenu" anchor="settingsButton">
+      <md-menu-item id="mixerButton">
+        ミキサー
+        <md-icon slot="start">tune</md-icon>
+      </md-menu-item>
+      <md-menu-item id="loopButton">
+        ループ
+        <md-icon slot="start">repeat</md-icon>
+        <md-icon id="loopCheckIcon" slot="null">check</md-icon>
+      </md-menu-item>
+    </md-menu>
+  </div>
+  <md-icon-button id="fullscreenButton">
+    <md-icon>fullscreen</md-icon>
+    <md-icon slot="selected">fullscreen_exit</md-icon>
+  </md-icon-button>
+</div>
+<md-dialog id="mixerDialog">
+  <div slot="headline">ミキサー</div>
+  <form slot="content" id="mixer" method="dialog">
+    <table>
+      <thead>
+        <tr>
+          <th>パート</th>
+          <th>再生</th>
+          <th>音量</th>
+        </tr>
+      </thead>
+      <tbody id="volumeControls">
+      </tbody>
+    </table>
+  </form>
+  <div slot="actions">
+    <md-text-button form="mixer">OK</md-text-button>
+  </div>
+</md-dialog>
