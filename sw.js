@@ -1,6 +1,5 @@
 const CACHE_NAME = "app-v3.0.0";
 const APP_FILES = [
-  "./",
   "/ototori/assets/player.html",
   "/ototori/assets/common.css",
   "/ototori/assets/app.css",
@@ -41,9 +40,10 @@ self.addEventListener("activate", (e) => {
 // リソースフェッチ時のキャッシュロード処理
 self.addEventListener("fetch", (e) => {
   const isAppFile = APP_FILES.some((url) => { return new URL(url, location.href).href == new URL(e.request.url, location.href).href });
+  const isTopPage = new URL(e.request.url, location.href).href == new URL("./", location.href).href;
   const isUnpkgFile = new URL(e.request.url, location.href).host == "unpkg.com";
   const isFontFile = new URL(e.request.url, location.href).host == "fonts.googleapis.com" || new URL(e.request.url, location.href).host == "fonts.gstatic.com";
-  if (isAppFile || isUnpkgFile || isFontFile) {
+  if (isAppFile || isTopPage || isUnpkgFile || isFontFile) {
     // キャッシュ優先
     e.respondWith(
       caches.match(e.request).then((r) => {
