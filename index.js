@@ -117,6 +117,11 @@ function generateIndex(data) {
         } else {
           listItemElement.type = "link";
           listItemElement.href = songData.url;
+          
+          const icon = document.createElement("md-icon");
+          icon.slot = "end";
+          icon.textContent = "arrow_forward";
+          listItemElement.appendChild(icon);
         }
       }
       listElement.appendChild(listItemElement);
