@@ -5,9 +5,7 @@ const APP_FILES = [
   "/ototori/assets/common.css",
   "/ototori/assets/app.css",
   "/ototori/assets/index.js",
-  "/ototori/assets/main.js",
-  "https://unpkg.com/@material/web/all.js?module",
-  "https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined"
+  "/ototori/assets/main.js"
 ]
 const NETWORK_FIRST = [
   "./list.json"
@@ -42,8 +40,11 @@ self.addEventListener("activate", (e) => {
 
 // リソースフェッチ時のキャッシュロード処理
 self.addEventListener("fetch", (e) => {
-  if (APP_FILES.some((url) => { return new URL(url, location.href).href == new URL(e.request.url, location.href).href })) {
-    // アプリファイルの場合は取得後にキャッシュに登録
+  const isAppFile = APP_FILES.some((url) => { return new URL(url, location.href).href == new URL(e.request.url, location.href).href });
+  const isUnpkgFile = new URL(e.request.url, location.href).host == "unpkg.com";
+  const isFontFile = new URL(e.request.url, location.href).host == "fonts.googleapis.com" || new URL(e.request.url, location.href).host == "fonts.gstatic.com";
+  if (isAppFile || isUnpkgFile || isFontFile) {
+    // キャッシュ優先
     e.respondWith(
       caches.match(e.request).then((r) => {
         // console.log("[Service Worker] Fetching resource: " + e.request.url);
