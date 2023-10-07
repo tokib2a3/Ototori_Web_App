@@ -4,6 +4,7 @@ const APP_FILES = [
   "/ototori/assets/player.html",
   "/ototori/assets/common.css",
   "/ototori/assets/app.css",
+  "/ototori/assets/index.js",
   "/ototori/assets/main.js",
   "https://unpkg.com/@material/web/all.js?module",
   "https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined"
