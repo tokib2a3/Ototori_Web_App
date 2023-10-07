@@ -1,18 +1,18 @@
 const playerArea = document.getElementById("player");
 if (playerArea) {
-  createPlayer();
   document.addEventListener("DOMContentLoaded", () => {
-    initialize();
+    createPlayer()
+      .then(() => {
+        initialize();
+      });
   });
 }
 displayVersion();
 
-function createPlayer() {
-  fetch("/ototori/assets/player.html")
-    .then(response => response.text())
-    .then(html => {
-      playerArea.innerHTML = html;
-    });
+async function createPlayer() {
+  const response = await fetch("/ototori/assets/player.html");
+  const html = await response.text();
+  playerArea.innerHTML = html;
 }
 
 function initialize() {
