@@ -14,7 +14,7 @@ function generateIndex(data) {
     const listElement = document.createElement("md-list");
     listArea.appendChild(listElement);
 
-    categoryData.songs.forEach(async songData => {
+    categoryData.songs.forEach(songData => {
       const listItemElement = document.createElement("md-list-item");
       
       const headlineElement = document.createElement("div");
@@ -34,17 +34,22 @@ function generateIndex(data) {
           listItemElement.type = "button";
           const downloadStateIcon = document.createElement("md-icon");
           downloadStateIcon.slot = "end";
+          listItemElement.appendChild(downloadStateIcon);
           
-          switch (await checkCacheState(alphabetSongName, songData.version)) {
-            case "latest":
-              downloadStateIcon.textContent = "download_done";
-              break;
-            case "needsUpdate":
-              downloadStateIcon.textContent = "refresh";
-              break;
-            case "notCached":
-              downloadStateIcon.textContent = "download";
-              break;
+          setDownloadStateIcon();
+
+          async function setDownloadStateIcon() {
+            switch (await checkCacheState(alphabetSongName, songData.version)) {
+              case "latest":
+                downloadStateIcon.textContent = "download_done";
+                break;
+              case "needsUpdate":
+                downloadStateIcon.textContent = "update";
+                break;
+              case "notCached":
+                downloadStateIcon.textContent = "download";
+                break;
+            }
           }
           
           listItemElement.addEventListener("click", handleListItemClick);
@@ -112,8 +117,6 @@ function generateIndex(data) {
                 }
               });
           }
-
-          listItemElement.appendChild(downloadStateIcon);
         } else {
           listItemElement.type = "link";
           listItemElement.href = songData.url;
