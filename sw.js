@@ -41,9 +41,9 @@ self.addEventListener("activate", (e) => {
 self.addEventListener("fetch", (e) => {
   const isAppFile = APP_FILES.some((url) => { return new URL(url, location.href).href == new URL(e.request.url, location.href).href });
   const isTopPage = new URL(e.request.url, location.href).href == new URL("./", location.href).href;
-  const isEsmFile = new URL(e.request.url, location.href).host == "esm.sh";
+  const isJsdelivrFile = new URL(e.request.url, location.href).host == "cdn.jsdelivr.net";
   const isFontFile = new URL(e.request.url, location.href).host == "fonts.googleapis.com" || new URL(e.request.url, location.href).host == "fonts.gstatic.com";
-  if (isAppFile || isTopPage || isEsmFile || isFontFile) {
+  if (isAppFile || isTopPage || isJsdelivrFile || isFontFile) {
     // キャッシュ優先
     e.respondWith(
       caches.match(e.request).then((r) => {
