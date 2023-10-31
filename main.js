@@ -454,7 +454,7 @@ function initialize() {
 
 // バージョン表示
 function displayVersion() {
-  const version = "3.0.1";
+  const version = "3.0.2";
   const versionElement = document.createElement("a");
   versionElement.id = "version";
   versionElement.href = "/ototori/changelog";
