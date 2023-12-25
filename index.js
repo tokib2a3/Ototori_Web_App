@@ -29,8 +29,8 @@ function generateIndex(data) {
 
       if (songData.url) {
         if (songData.version) {
-          const alphabetSongName = songData.url.match(/\.\/(.*?)\//)[1];
-          listItemElement.id = alphabetSongName;
+          const songPath = songData.url.match(/\.\/(.*)\//)[1];
+          listItemElement.id = songPath;
           listItemElement.type = "button";
           const downloadStateIcon = document.createElement("md-icon");
           downloadStateIcon.slot = "end";
@@ -39,7 +39,7 @@ function generateIndex(data) {
           setDownloadStateIcon();
 
           async function setDownloadStateIcon() {
-            switch (await checkCacheState(alphabetSongName, songData.version)) {
+            switch (await checkCacheState(songPath, songData.version)) {
               case "latest":
                 downloadStateIcon.textContent = "download_done";
                 break;
@@ -66,7 +66,7 @@ function generateIndex(data) {
               headers: {
                 "Content-Type": "application/x-www-form-urlencoded"
               },
-              body: "song=" + alphabetSongName
+              body: "song=" + songPath
             })
               .then(response => response.json())
               .then(async urls => {
@@ -74,15 +74,15 @@ function generateIndex(data) {
                 listItemElement.appendChild(downloadStateIcon);
 
                 if (await areUrlsInCache(urls)) {
-                  if (await checkCacheState(alphabetSongName, songData.version) == "latest") {
+                  if (await checkCacheState(songPath, songData.version) == "latest") {
                     location.href = songData.url;
                     return;
                   } else {
                     updateSongName.textContent = songData.name;
                     updateSongData = {
                       name: songData.name,
-                      alphabetSongName: alphabetSongName,
-                      downloadKey: alphabetSongName + "-v" + songData.version,
+                      songPath: songPath,
+                      downloadKey: songPath + "-v" + songData.version,
                       url: songData.url,
                       cacheUrls: urls
                     };
@@ -90,14 +90,14 @@ function generateIndex(data) {
                   }
                 } else {
                   const keys = await caches.keys();
-                  const cachedKey = keys.find((key) => key.match(alphabetSongName));
+                  const cachedKey = keys.find((key) => key.match(songPath));
                   caches.delete(cachedKey);
                   
                   downloadSongName.textContent = songData.name;
                   downloadSongData = {
                     name: songData.name,
-                    alphabetSongName: alphabetSongName,
-                    downloadKey: alphabetSongName + "-v" + songData.version,
+                    songPath: songPath,
+                    downloadKey: songPath + "-v" + songData.version,
                     url: songData.url,
                     cacheUrls: urls
                   };
@@ -108,7 +108,7 @@ function generateIndex(data) {
               .catch(async () => {
                 progressCircle.remove();
                 listItemElement.appendChild(downloadStateIcon);
-                if (await checkCacheState(alphabetSongName, songData.version) == "notCached") {
+                if (await checkCacheState(songPath, songData.version) == "notCached") {
                   errorDialog.show();
                   return;
                 } else {
@@ -132,10 +132,10 @@ function generateIndex(data) {
   });
 }
 
-async function checkCacheState(alphabetSongName, version) {
-  const currentKey = alphabetSongName + "-v" + version;
+async function checkCacheState(songPath, version) {
+  const currentKey = songPath + "-v" + version;
   const keys = await caches.keys();
-  const cachedKey = keys.find((key) => key.match(alphabetSongName));
+  const cachedKey = keys.find((key) => key.match(songPath));
   if (cachedKey) {
     if (cachedKey == currentKey) {
       return "latest";
@@ -183,7 +183,7 @@ async function downloadSong(downloadSongData, isUpdate = false) {
     caches.keys().then((keys) => {
       return Promise.all(
         keys.filter((key) => {
-          return key.split("-")[0] == downloadSongData.alphabetSongName && key != downloadSongData.downloadKey;
+          return key.split("-")[0] == downloadSongData.songPath && key != downloadSongData.downloadKey;
         }).map((key) => {
           return caches.delete(key);
         })
@@ -191,7 +191,7 @@ async function downloadSong(downloadSongData, isUpdate = false) {
     });
   }
 
-  const songListItem = document.getElementById(downloadSongData.alphabetSongName);
+  const songListItem = document.getElementById(downloadSongData.songPath);
   const songListIcon = songListItem.querySelector("md-icon");
   songListIcon.remove();
 
