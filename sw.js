@@ -40,10 +40,11 @@ self.addEventListener("activate", (e) => {
 // リソースフェッチ時のキャッシュロード処理
 self.addEventListener("fetch", (e) => {
   const isAppFile = APP_FILES.some((url) => { return new URL(url, location.href).href == new URL(e.request.url, location.href).href });
-  const isTopPage = new URL(e.request.url, location.href).href == new URL("./", location.href).href;
+  // const isTopPage = new URL(e.request.url, location.href).href == new URL("./", location.href).href;
   const isJsdelivrFile = new URL(e.request.url, location.href).host == "cdn.jsdelivr.net";
   const isFontFile = new URL(e.request.url, location.href).host == "fonts.googleapis.com" || new URL(e.request.url, location.href).host == "fonts.gstatic.com";
-  if (isAppFile || isTopPage || isJsdelivrFile || isFontFile) {
+  // if (isAppFile || isTopPage || isJsdelivrFile || isFontFile) {
+  if (isAppFile || isJsdelivrFile || isFontFile) {
     // キャッシュ優先
     e.respondWith(
       caches.match(e.request).then((r) => {
