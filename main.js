@@ -284,6 +284,7 @@ class Player {
       });
 
       this.updateDisplayLoop = this.createAnimationFrameLoop(() => this.updateDisplay());
+      setTimeout(() => this.handlePlaybackEnd(), (this.seekBar.max - this.playPos) * 1000);
     }
   }
 
@@ -314,6 +315,19 @@ class Player {
     }
   }
 
+  handlePlaybackEnd() {
+    this.stopAudio();
+    this.playPos = 0;
+    if (this.isLoopEnabled) {
+      this.playAudio();
+    } else {
+      if (this.wakeLock) {
+        this.wakeLock.release();
+      }
+      this.playPauseButton.selected = false;
+    }
+  }
+
   // 画面の更新関連
   createAnimationFrameLoop(func) {
     let handler = {};
@@ -329,18 +343,6 @@ class Player {
     const time = this.audioContext.currentTime + 0.1 - this.startTime + this.playPos;
     seekBar.value = time;
     this.currentTime.innerText = this.formatTime(time);
-    if (time > this.seekBar.max) {
-      this.stopAudio();
-      this.playPos = 0;
-      if (this.isLoopEnabled) {
-        this.playAudio();
-      } else {
-        if (this.wakeLock) {
-          this.wakeLock.release();
-        }
-        this.playPauseButton.selected = false;
-      }
-    }
     if (this.hasImage) {
       this.updateImage(time);
     }
