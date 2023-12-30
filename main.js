@@ -1,84 +1,252 @@
-const playerArea = document.getElementById("player");
-if (playerArea) {
-  document.addEventListener("DOMContentLoaded", () => {
-    createPlayer()
-      .then(() => {
-        initialize();
+class Player {
+  constructor(playerAreaId) {
+    this.playerArea = document.getElementById(playerAreaId);
+    this.audioContext = new AudioContext();
+    this.isPlaying = false;
+    this.isLoopEnabled = false;
+    this.gainNodes = [];
+    this.audioBuffers = [];
+    this.audioSources = [];
+    this.startTime = 0;
+    this.playPos = 0;
+    this.updateDisplayLoop = null;
+    this.wakeLock = null;
+    this.hasImage = typeof imageCount != "undefined" && imageCount > 0;
+    this.imageUrls = [];
+    this.spos = {};
+    this.imgElem = null;
+    this.loadedAudioCount = 0;
+
+    if (this.playerArea) {
+      document.addEventListener("DOMContentLoaded", () => this.initialize());
+    }
+  }
+
+  // 初期化関連
+  async initialize() {
+    await this.createPlayer();
+    this.setupUI();
+    this.setupEventListeners();
+    this.setupAudio();
+    if (this.hasImage) {
+      this.setupImage();
+    }
+  }
+
+  async createPlayer() {
+    const response = await fetch("/ototori/assets/player.html");
+    const html = await response.text();
+    this.playerArea.innerHTML = html;
+  }
+
+  setupUI() {
+    this.cursor = document.getElementById("cursor");
+    this.controllerArea = document.getElementById("controller");
+    this.playPauseButton = document.getElementById("playPauseButton");
+    this.currentTime = document.getElementById("currentTime");
+    this.maxTime = document.getElementById("maxTime");
+    this.seekBar = document.getElementById("seekBar");
+    this.settingsMenu = document.getElementById("settingsMenu");
+    this.settingsButton = document.getElementById("settingsButton");
+    this.mixerButton = document.getElementById("mixerButton");
+    this.loopButton = document.getElementById("loopButton");
+    this.loopCheckIcon = document.getElementById("loopCheckIcon");
+    this.fullscreenButton = document.getElementById("fullscreenButton");
+    this.mixerDialog = document.getElementById("mixerDialog");
+  }
+
+  setupEventListeners() {
+    this.playPauseButton.addEventListener("click", () => {
+      this.togglePlayPause();
+    });
+      
+    this.seekBar.addEventListener("input", () => {
+      if (this.updateDisplayLoop) {
+        cancelAnimationFrame(this.updateDisplayLoop.id);
+        this.updateDisplayLoop = null;
+      }
+      this.currentTime.innerText = this.formatTime(this.seekBar.value);
+      if (this.hasImage) {
+        this.updateImage(this.seekBar.value);
+      }
+    });
+
+    this.seekBar.addEventListener("change", () => {
+      if (this.hasImage) {
+        this.updateImage(this.seekBar.value);
+      }
+      this.seekAudio(Number(this.seekBar.value));
+    });
+        
+    this.settingsButton.addEventListener("click", () => {
+      this.settingsMenu.open = !this.settingsMenu.open;
+    });
+
+    this.mixerButton.addEventListener("click", () => {
+      this.mixerDialog.show();
+    });
+
+    this.loopButton.addEventListener("click", () => {
+      this.isLoopEnabled = !this.isLoopEnabled;
+      if (this.isLoopEnabled) {
+        this.loopCheckIcon.slot = "end";
+      } else {
+        this.loopCheckIcon.slot = "null";
+      }
+    });
+
+    this.fullscreenButton.addEventListener("click", () => {
+      this.toggleFullScreen(this.playerArea);
+    });
+
+    document.addEventListener("fullscreenchange", () => {
+      this.fullscreenButton.selected = document.fullscreenElement == this.playerArea;
+    });
+
+    // カーソル移動でコントローラー表示・非表示
+    this.playerArea.addEventListener("mousemove", () => this.handleUserActivity());
+    this.playerArea.addEventListener("keydown", () => this.handleUserActivity());
+    this.playerArea.addEventListener("click", () => this.handleUserActivity());
+
+    document.addEventListener("visibilitychange", () => this.handleVisibilityChange());
+    
+    // 画面リサイズ時にカーソルを再配置
+    if (this.hasImage) {
+      window.addEventListener("resize", () => {
+        this.updateImage(this.seekBar.value);
       });
-  });
-}
-displayVersion();
+    }
+  }
 
-async function createPlayer() {
-  const response = await fetch("/ototori/assets/player.html");
-  const html = await response.text();
-  playerArea.innerHTML = html;
-}
+  setupAudio() {
+    // 読み込み済みの音声ファイルの数
+    let loadedAudioCount = 0;
 
-function initialize() {
-  // UI 要素を取得
-  const cursor = document.getElementById("cursor");
-  const controllerArea = document.getElementById("controller");
-  const playPauseButton = document.getElementById("playPauseButton");
-  const currentTime = document.getElementById("currentTime");
-  const maxTime = document.getElementById("maxTime");
-  const seekBar = document.getElementById("seekBar");
-  const settingsMenu = document.getElementById("settingsMenu");
-  const settingsButton = document.getElementById("settingsButton");
-  const mixerButton = document.getElementById("mixerButton");
-  const loopButton = document.getElementById("loopButton");
-  const loopCheckIcon = document.getElementById("loopCheckIcon");
-  const fullscreenButton = document.getElementById("fullscreenButton");
-  const mixerDialog = document.getElementById("mixerDialog");
+    // 読み込み中メッセージの生成とDOMへの追加
+    const loadingMessage = document.createElement("p");
+    loadingMessage.textContent = `音ファイルを読み込み中 (0 / ${audios.length})`;
+    document.body.appendChild(loadingMessage);
 
-  // スコア画像のプリロードと、表示要素の属性設定
-  const hasImage = typeof imageCount != "undefined" && imageCount > 0;
-  if (hasImage) {
+    // 音ファイルのfetchとデコードを行う関数
+    async function fetchAndDecodeAudio(audio) {
+      const response = await fetch(audio.url);
+      const arrayBuffer = await response.arrayBuffer();
+      const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+      loadingMessage.innerText = `音ファイルを読み込み中 (${++loadedAudioCount} / ${audios.length})`;
+      return audioBuffer;
+    }
+
+    // 音量調整用のUIを生成する関数
+    function createVolumeControls(gainNode, index) {
+      const fileNameCell = document.createElement("td");
+      fileNameCell.textContent = audios[index].url.split("/").pop().split(".")[0];
+
+      const switchCell = document.createElement("td");
+      const playSwitch = document.createElement("md-switch");
+      playSwitch.selected = audios[index].initialPlay ?? true;
+      playSwitch.addEventListener("change", (event) => {
+        if (event.target.selected) {
+          gainNode.gain.value = volumeSlider.value / 100;
+          volumeSlider.disabled = false;
+        } else {
+          gainNode.gain.value = 0;
+          volumeSlider.disabled = true;
+        }
+      });
+      switchCell.appendChild(playSwitch);
+
+      const volumeCell = document.createElement("td");
+      const volumeSlider = document.createElement("md-slider");
+      volumeSlider.disabled = !playSwitch.selected;
+      volumeSlider.labeled = true;
+      volumeSlider.max = 127;
+      volumeSlider.value = audios[index].initialVolume ?? 80;
+      gainNode.gain.value = playSwitch.selected ? volumeSlider.value / 100 : 0;
+      volumeSlider.addEventListener("input", (event) => {
+        gainNode.gain.value = event.target.value / 100;
+      });
+      volumeCell.appendChild(volumeSlider);
+
+      const row = document.createElement("tr");
+      row.appendChild(fileNameCell);
+      row.appendChild(switchCell);
+      row.appendChild(volumeCell);
+      return row;
+    }
+
+    // 全ての音声ファイルのfetchとデコードを行い、AudioBufferを配列で取得
+    Promise.all(audios.map(fetchAndDecodeAudio.bind(this)))
+      .then(buffers => {
+        // seekBarの最大値を最初の音声データの長さに設定
+        this.seekBar.max = buffers[0].duration;
+        // maxTime の更新
+        this.maxTime.innerText = this.formatTime(buffers[0].duration);
+
+        const tableBody = document.getElementById("volumeControls");
+        // 各音声データに対応するgainNodeを生成し、音声ファイルのAudioBufferとセットで配列に追加
+        buffers.forEach((buffer, index) => {
+          const gainNode = this.audioContext.createGain();
+          this.gainNodes.push(gainNode);
+          this.audioBuffers.push(buffer);
+
+          tableBody.appendChild(createVolumeControls(gainNode, index))
+        });
+      })
+      .then(() => {
+        // 音声ファイルの読み込みが完了したら、loadingMessageを削除
+        document.body.removeChild(loadingMessage);
+        this.playPauseButton.disabled = false;
+        this.seekBar.disabled = false;
+      })
+      .catch(error => {
+        // エラーが発生した場合にエラーメッセージを表示する
+        const errorMessage = document.createElement("p");
+        errorMessage.textContent = "ファイルの読み込みに失敗しました: " + error.toString();
+        document.body.insertBefore(errorMessage, loadingMessage);
+      });
+  }
+
+  setupImage() {
     // 画像URLの配列を生成
-    var imageUrls = [];
     for (let i = 1; i <= imageCount; i++) {
-      imageUrls.push(`./score/score-${i}.svg`);
+      this.imageUrls.push(`./score/score-${i}.svg`);
     }
 
     // 画像表示領域を作成
     const imageArea = document.getElementById("imageArea");
-    var img = document.createElement("img");
-    img.src = imageUrls[0];
-    img.oncontextmenu = () => { return false; };
-    img.onselectstart = () => { return false; };
-    img.onmousedown = () => { return false; };
-    imageArea.appendChild(img);
+    this.imgElem = document.createElement("img");
+    this.imgElem.src = this.imageUrls[0];
+    this.imgElem.oncontextmenu = () => { return false; };
+    this.imgElem.onselectstart = () => { return false; };
+    this.imgElem.onmousedown = () => { return false; };
+    imageArea.appendChild(this.imgElem);
 
-    // 画像を非同期にプリロードする関数
-    async function preloadImages(urls) {
-      const promises = urls.map(url => new Promise((resolve, reject) => {
+    // 画像を非同期にプリロード
+    (async () => {
+      const promises = this.imageUrls.map(url => new Promise((resolve, reject) => {
         const image = new Image();
         image.onload = resolve;
         image.onerror = reject;
         image.src = url;
       }));
       return Promise.all(promises);
-    }
-
-    // 画像を非同期にプリロード
-    preloadImages(imageUrls);
+    })();    
 
     // spos データを読み込み
-    var spos = {};
     fetch("./score/spos.xml")
       .then(response => response.text())
       .then(xmlText => {
         const parser = new DOMParser();
-        xmlDoc = parser.parseFromString(xmlText, "application/xml");
+        const xmlDoc = parser.parseFromString(xmlText, "application/xml");
 
-        spos.elements = Array.from(xmlDoc.querySelectorAll("score > elements > element"), (element) => ({
+        this.spos.elements = Array.from(xmlDoc.querySelectorAll("score > elements > element"), (element) => ({
           x: parseInt(element.getAttribute("x")),
           y: parseInt(element.getAttribute("y")),
           sy: parseFloat(element.getAttribute("sy")),
           page: parseInt(element.getAttribute("page"))
         }));
 
-        spos.events = Array.from(xmlDoc.querySelectorAll("score > events > event"), (event) => ({
+        this.spos.events = Array.from(xmlDoc.querySelectorAll("score > events > event"), (event) => ({
           position: parseInt(event.getAttribute("position"))
         }));
       })
@@ -87,183 +255,67 @@ function initialize() {
       });
   }
 
-  // コントローラーを表示・非表示
-  let controllerTimeout;
-
-  document.addEventListener("mousemove", handleUserActivity);
-  document.addEventListener("keydown", handleUserActivity);
-  document.addEventListener("click", handleUserActivity);
-
-  function handleUserActivity() {
-    showController();
-    clearTimeout(controllerTimeout);
-    controllerTimeout = setTimeout(() => {
-      if (isPlaying && !settingsMenu.open && !mixerDialog.open) {
-        hideController();
+  // 音の再生関連
+  togglePlayPause() {
+    if (this.playPauseButton.selected) {
+      this.requestWakeLock();
+      this.playAudio();
+    } else {
+      if (this.wakeLock) {
+        this.wakeLock.release();
       }
-    }, 3000);
+      this.stopAudio();
+      this.playPos += this.audioContext.currentTime + 0.1 - this.startTime;
+    }
   }
 
-  function showController() {
-    controllerArea.classList.remove("hide");
-  }
+  playAudio() {
+    if (!this.isPlaying) {
+      this.isPlaying = true;
+      this.startTime = this.audioContext.currentTime + 0.1;
 
-  function hideController() {
-    controllerArea.classList.add("hide");
-  }
-
-  // オーディオコンテキストの生成
-  var audioContext = new AudioContext();
-
-  // 各音声データに対応するgainNode, audioBuffer, audioSourceの配列
-  var gainNodes = [];
-  var audioBuffers = [];
-  var audioSources = [];
-
-  // 再生状態の初期化
-  let isPlaying = false;
-  let isLoopEnabled = false;
-
-  // 再生位置の初期化
-  let startTime = 0;
-  var playPos = 0;
-
-  // currentTimeの更新用関数
-  let updateDisplayLoop;
-
-  // 読み込み済みの音声ファイルの数
-  var loadedAudioCount = 0;
-
-  // 読み込み中メッセージの生成とDOMへの追加
-  const loadingMessage = document.createElement("p");
-  loadingMessage.textContent = `音ファイルを読み込み中 (0 / ${audios.length})`;
-  document.body.appendChild(loadingMessage);
-
-  // 音声ファイルのfetchとデコードを行う関数
-  async function fetchAudio(audio) {
-    const response = await fetch(audio.url);
-    const arrayBuffer = await response.arrayBuffer();
-    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-    loadingMessage.innerText = `音ファイルを読み込み中 (${++loadedAudioCount} / ${audios.length})`;
-    return audioBuffer;
-  }
-
-  // 音量調整用のUIを生成する関数
-  function createVolumeControls(gainNode, index) {
-    const fileNameCell = document.createElement("td");
-    fileNameCell.textContent = audios[index].url.split("/").pop().split(".")[0];
-
-    const switchCell = document.createElement("td");
-    const playSwitch = document.createElement("md-switch");
-    playSwitch.selected = audios[index].initialPlay ?? true;
-    playSwitch.addEventListener("change", (event) => {
-      if (event.target.selected) {
-        gainNode.gain.value = volumeSlider.value / 100;
-        volumeSlider.disabled = false;
-      } else {
-        gainNode.gain.value = 0;
-        volumeSlider.disabled = true;
-      }
-    });
-    switchCell.appendChild(playSwitch);
-
-    const volumeCell = document.createElement("td");
-    const volumeSlider = document.createElement("md-slider");
-    volumeSlider.disabled = !playSwitch.selected;
-    volumeSlider.labeled = true;
-    volumeSlider.max = 127;
-    volumeSlider.value = audios[index].initialVolume ?? 80;
-    gainNode.gain.value = playSwitch.selected ? volumeSlider.value / 100 : 0;
-    volumeSlider.addEventListener("input", (event) => {
-      gainNode.gain.value = event.target.value / 100;
-    });
-    volumeCell.appendChild(volumeSlider);
-
-    const row = document.createElement("tr");
-    row.appendChild(fileNameCell);
-    row.appendChild(switchCell);
-    row.appendChild(volumeCell);
-    return row;
-  }
-
-  // 全ての音声ファイルのfetchとデコードを行い、AudioBufferを配列で取得
-  Promise.all(audios.map(fetchAudio))
-    .then(buffers => {
-      // seekBarの最大値を最初の音声データの長さに設定
-      seekBar.max = buffers[0].duration;
-      // maxTime の更新
-      maxTime.innerText = formatTime(buffers[0].duration);
-
-      const tableBody = document.getElementById("volumeControls");
-      // 各音声データに対応するgainNodeを生成し、音声ファイルのAudioBufferとセットで配列に追加
-      buffers.forEach((buffer, index) => {
-        const gainNode = audioContext.createGain();
-        gainNodes.push(gainNode);
-        audioBuffers.push(buffer);
-
-        tableBody.appendChild(createVolumeControls(gainNode, index))
-      });
-    })
-    .then(() => {
-      // 音声ファイルの読み込みが完了したら、loadingMessageを削除
-      document.body.removeChild(loadingMessage);
-      playPauseButton.disabled = false;
-      seekBar.disabled = false;
-    })
-    .catch(error => {
-      // エラーが発生した場合にエラーメッセージを表示する
-      const errorMessage = document.createElement("p");
-      errorMessage.textContent = "ファイルの読み込みに失敗しました: " + error.toString();
-      document.body.insertBefore(errorMessage, loadingMessage);
-    });
-
-  function playAudio() {
-    if (!isPlaying) {
-      isPlaying = true;
-      startTime = audioContext.currentTime + 0.1;
-
-      audioSources = audioBuffers.map((buffer, index) => {
-        const source = audioContext.createBufferSource();
+      this.audioSources = this.audioBuffers.map((buffer, index) => {
+        const source = this.audioContext.createBufferSource();
         source.buffer = buffer;
-        source.connect(gainNodes[index]);
-        gainNodes[index].connect(audioContext.destination);
-        source.start(startTime, playPos);
+        source.connect(this.gainNodes[index]);
+        this.gainNodes[index].connect(this.audioContext.destination);
+        source.start(this.startTime, this.playPos);
         return source;
       });
 
-      updateDisplayLoop = createAnimationFrameLoop(updateDisplay);
+      this.updateDisplayLoop = this.createAnimationFrameLoop(() => this.updateDisplay());
     }
   }
 
-  function stopAudio() {
-    isPlaying = false;
+  stopAudio() {
+    this.isPlaying = false;
 
-    audioSources.forEach(source => {
+    this.audioSources.forEach(source => {
       source.stop();
     });
 
-    audioSources = [];
+    this.audioSources = [];
 
-    if (updateDisplayLoop) {
-      cancelAnimationFrame(updateDisplayLoop.id);
-      updateDisplayLoop = null;
+    if (this.updateDisplayLoop) {
+      cancelAnimationFrame(this.updateDisplayLoop.id);
+      this.updateDisplayLoop = null;
     }
   }
 
-  function seekAudio(time) {
-    var shouldPlay = false;
-    if (isPlaying) {
-      stopAudio();
+  seekAudio(time) {
+    let shouldPlay = false;
+    if (this.isPlaying) {
+      this.stopAudio();
       shouldPlay = true;
     }
-    playPos = time;
+    this.playPos = time;
     if (shouldPlay) {
-      playAudio();
+      this.playAudio();
     }
   }
 
   // 画面の更新関連
-  function createAnimationFrameLoop(func) {
+  createAnimationFrameLoop(func) {
     let handler = {};
     function loop() {
       handler.id = requestAnimationFrame(loop);
@@ -273,42 +325,42 @@ function initialize() {
     return handler;
   }
 
-  function updateDisplay() {
-    time = audioContext.currentTime + 0.1 - startTime + playPos;
+  updateDisplay() {
+    const time = this.audioContext.currentTime + 0.1 - this.startTime + this.playPos;
     seekBar.value = time;
-    currentTime.innerText = formatTime(time);
-    if (time > seekBar.max) {
-      stopAudio();
-      playPos = 0;
-      if (isLoopEnabled) {
-        playAudio();
+    this.currentTime.innerText = this.formatTime(time);
+    if (time > this.seekBar.max) {
+      this.stopAudio();
+      this.playPos = 0;
+      if (this.isLoopEnabled) {
+        this.playAudio();
       } else {
-        if (wakeLock) {
-          wakeLock.release();
+        if (this.wakeLock) {
+          this.wakeLock.release();
         }
-        playPauseButton.selected = false;
+        this.playPauseButton.selected = false;
       }
     }
-    if (hasImage) {
-      updateImage(time);
+    if (this.hasImage) {
+      this.updateImage(time);
     }
   }
 
-  function updateImage(time) {
+  updateImage(time) {
     let currentTime = (time - (typeof timeOffset == "undefined" ? 0 : timeOffset)) * 1000; // ミリ秒単位に変換
     if (currentTime < 0) {
       currentTime = 0;
     }
-    const maxTime = (seekBar.max - (typeof timeOffset == "undefined" ? 0 : timeOffset)) * 1000;
+    const maxTime = (this.seekBar.max - (typeof timeOffset == "undefined" ? 0 : timeOffset)) * 1000;
 
-    const currentElid = spos.events.findIndex(event => event.position > currentTime) - 1;
-    const currentEvent = spos.events[currentElid] || spos.events[spos.events.length - 1];
+    const currentElid = this.spos.events.findIndex(event => event.position > currentTime) - 1;
+    const currentEvent = this.spos.events[currentElid] || this.spos.events[this.spos.events.length - 1];
     const currentPosition = currentEvent.position;
-    const nextEvent = spos.events[currentElid + 1];
+    const nextEvent = this.spos.events[currentElid + 1];
     const nextPosition = nextEvent ? nextEvent.position : maxTime;
     
-    const currentElement = spos.elements[currentElid] || spos.elements[spos.elements.length - 1];
-    const nextElement = spos.elements[currentElid + 1];
+    const currentElement = this.spos.elements[currentElid] || this.spos.elements[this.spos.elements.length - 1];
+    const nextElement = this.spos.elements[currentElid + 1];
 
     const currentX = currentElement.x;
     const currentY = currentElement.y;
@@ -323,86 +375,45 @@ function initialize() {
     const y = currentY;
 
     // Safari は SVG 画像の naturalWidth, naturalHeight を正しく取得できないらしい
-    // const scaleX = img.clientWidth / (12 * img.naturalWidth);
-    // const scaleY = img.clientHeight / (12 * img.naturalHeight);
-    const scaleX = img.width / (12 * 2721.26);
-    const scaleY = img.height / (12 * 1530.71);
+    // const scaleX = this.imgElem.clientWidth / (12 * this.imgElem.naturalWidth);
+    // const scaleY = this.imgElem.clientHeight / (12 * this.imgElem.naturalHeight);
+    const scaleX = this.imgElem.width / (12 * 2721.26);
+    const scaleY = this.imgElem.height / (12 * 1530.71);
     const scale = Math.min(scaleX, scaleY);
 
-    cursor.style.left = `${x * scale}px`;
-    cursor.style.top = `${y * scale}px`;
-    cursor.style.width = `${64 * scale}px`;
-    cursor.style.height = `${sy * scale}px`;
+    this.cursor.style.left = `${x * scale}px`;
+    this.cursor.style.top = `${y * scale}px`;
+    this.cursor.style.width = `${64 * scale}px`;
+    this.cursor.style.height = `${sy * scale}px`;
     
-    if (img.src != imageUrls[currentPage]) {
-      img.src = imageUrls[currentPage];
+    if (this.imgElem.src != this.imageUrls[currentPage]) {
+      this.imgElem.src = this.imageUrls[currentPage];
     }
   }
 
-  playPauseButton.addEventListener("click", () => {
-    if (playPauseButton.selected) {
-      requestWakeLock();
-      playAudio();
-    } else {
-      if (wakeLock) {
-        wakeLock.release();
+  showController() {
+    this.controllerArea.classList.remove("hide");
+  }
+
+  hideController() {
+    this.controllerArea.classList.add("hide");
+  }
+
+  handleUserActivity() {
+    this.showController();
+    clearTimeout(this.controllerTimeout);
+    this.controllerTimeout = setTimeout(() => {
+      if (this.isPlaying && !this.settingsMenu.open && !this.mixerDialog.open) {
+        this.hideController();
       }
-      stopAudio();
-      playPos += audioContext.currentTime + 0.1 - startTime;
-    }
-  });
+    }, 3000);
+  }
 
-  seekBar.addEventListener("input", () => {
-    if (updateDisplayLoop) {
-      cancelAnimationFrame(updateDisplayLoop.id);
-      updateDisplayLoop = null;
-    }
-    currentTime.innerText = formatTime(seekBar.value);
-    if (hasImage) {
-      updateImage(seekBar.value);
-    }
-  });
-
-  seekBar.addEventListener("change", () => {
-    if (hasImage) {
-      updateImage(seekBar.value);
-    }
-    seekAudio(Number(seekBar.value));
-  });
-      
-  settingsButton.addEventListener("click", () => {
-    settingsMenu.open = !settingsMenu.open;
-  });
-
-  mixerButton.addEventListener("click", () => {
-    mixerDialog.show();
-  });
-
-  loopButton.addEventListener("click", () => {
-    if (isLoopEnabled) {
-      isLoopEnabled = false;
-      loopCheckIcon.slot = "null";
-    } else {
-      isLoopEnabled = true;
-      loopCheckIcon.slot = "end";
-    }
-  });
-
-  fullscreenButton.addEventListener("click", () => {
-    toggleFullScreen(playerArea);
-  });
-
-  document.addEventListener("fullscreenchange", () => {
-    fullscreenButton.selected = document.fullscreenElement == playerArea;
-  });
-
-  // 時間の表示をフォーマットする関数
-  function formatTime(sec) {
+  formatTime(sec) {
     return Math.floor(sec / 60) + ":" + String(Math.floor(sec % 60)).padStart(2, "0")
   }
 
-  // 全画面表示をトグルする関数
-  function toggleFullScreen(element) {
+  toggleFullScreen(element) {
     // 現在全画面表示かチェック
     if ((document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement) == element) {
       // そうなら、全画面表示を終了
@@ -425,36 +436,29 @@ function initialize() {
     }
   }
 
-  // スリープ防止
-  let wakeLock = null;
-
-  const requestWakeLock = async () => {
+  // ウェイクロック
+  async requestWakeLock() {
     try {
-      wakeLock = await navigator.wakeLock.request("screen");
+      this.wakeLock = await navigator.wakeLock.request("screen");
     } catch (err) {
       console.log(`${err.name}, ${err.message}`);
     }
   }
 
-  const handleVisibilityChange = async () => {
-    if (wakeLock != null && document.visibilityState == "visible" && isPlaying) {
-      await requestWakeLock();
+  async handleVisibilityChange() {
+    if (this.wakeLock != null && document.visibilityState == "visible" && this.isPlaying) {
+      await this.requestWakeLock();
     }
   };
-
-  document.addEventListener("visibilitychange", handleVisibilityChange);
-
-  if (hasImage) {
-    // 画面リサイズ時にカーソルを再配置
-    window.addEventListener("resize", () => {
-      updateImage(seekBar.value);
-    });
-  }
 }
+
+// Player クラスのインスタンスを作成し、初期化する
+const player = new Player("player");
+displayVersion();
 
 // バージョン表示
 function displayVersion() {
-  const version = "3.0.3";
+  const version = "3.1.0";
   const versionElement = document.createElement("a");
   versionElement.id = "version";
   versionElement.href = "/ototori/changelog";
