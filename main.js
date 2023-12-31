@@ -6,7 +6,8 @@ class Player {
     this.isLoopEnabled = false;
     this.gainNodes = [];
     this.audioElems = [];
-    this.playPos = 0;
+    this.currentTime = 0;
+    this.duration = 0;
     this.updateDisplayLoop = null;
     this.wakeLock = null;
     this.hasImage = typeof imageCount != "undefined" && imageCount > 0;
@@ -41,8 +42,8 @@ class Player {
     this.cursor = document.getElementById("cursor");
     this.controllerArea = document.getElementById("controller");
     this.playPauseButton = document.getElementById("playPauseButton");
-    this.currentTime = document.getElementById("currentTime");
-    this.maxTime = document.getElementById("maxTime");
+    this.currentTimeElem = document.getElementById("currentTime");
+    this.maxTimeElem = document.getElementById("maxTime");
     this.seekBar = document.getElementById("seekBar");
     this.settingsMenu = document.getElementById("settingsMenu");
     this.settingsButton = document.getElementById("settingsButton");
@@ -66,7 +67,7 @@ class Player {
         cancelAnimationFrame(this.updateDisplayLoop.id);
         this.updateDisplayLoop = null;
       }
-      this.currentTime.innerText = this.formatTime(this.seekBar.value);
+      this.currentTimeElem.innerText = this.formatTime(this.seekBar.value);
       if (this.hasImage) {
         this.updateImage(this.seekBar.value);
       }
@@ -124,7 +125,7 @@ class Player {
     // 画面リサイズ時にカーソルを再配置
     if (this.hasImage) {
       window.addEventListener("resize", () => {
-        this.updateImage(this.seekBar.value);
+        this.updateImage(this.currentTime);
       });
     }
   }
@@ -166,10 +167,12 @@ class Player {
           tableBody.appendChild(this.createVolumeControls(gainNode, i));
           
           if (i == 0) {
-            // seekBar の最大値を最初の音声データの長さに設定
-            this.seekBar.max = audio.duration;
+            // 最初の音データの長さを基準の長さとする
+            this.duration = audio.duration;
+            // seekBar の最大値を設定
+            this.seekBar.max = this.duration;
             // maxTime を更新
-            this.maxTime.innerText = this.formatTime(audio.duration);
+            this.maxTimeElem.innerText = this.formatTime(this.duration);
 
             // 再生終了時にループ
             audio.addEventListener("ended", () => this.handlePlaybackEnd());
@@ -282,7 +285,6 @@ class Player {
         });
       }
       this.stopAudio();
-      this.playPos = this.audioElems[0].currentTime;
     }
   }
 
@@ -292,7 +294,7 @@ class Player {
       this.audioContext.resume();
 
       this.audioElems.forEach((audio) => {
-        audio.currentTime = this.playPos;
+        audio.currentTime = this.currentTime;
         audio.play();
       });
 
@@ -319,7 +321,7 @@ class Player {
       this.stopAudio();
       shouldPlay = true;
     }
-    this.playPos = time;
+    this.currentTime = time;
     if (shouldPlay) {
       this.playAudio();
     }
@@ -327,7 +329,7 @@ class Player {
 
   handlePlaybackEnd() {
     this.stopAudio();
-    this.playPos = 0;
+    this.currentTime = 0;
     if (this.isLoopEnabled) {
       this.playAudio();
     } else {
@@ -352,22 +354,22 @@ class Player {
   }
 
   updateDisplay() {
-    const time = this.audioElems[0].currentTime;
-    seekBar.value = time;
-    this.currentTime.innerText = this.formatTime(time);
+    this.currentTime = this.audioElems[0].currentTime;
+    seekBar.value = this.currentTime;
+    this.currentTimeElem.innerText = this.formatTime(this.currentTime);
     if (this.hasImage) {
-      this.updateImage(time);
+      this.updateImage(this.currentTime);
     }
   }
 
   updateImage(time) {
-    let currentTime = (time - (typeof timeOffset == "undefined" ? 0 : timeOffset)) * 1000; // ミリ秒単位に変換
-    if (currentTime < 0) {
-      currentTime = 0;
+    let playbackTime = (time - (typeof timeOffset == "undefined" ? 0 : timeOffset)) * 1000; // ミリ秒単位に変換
+    if (playbackTime < 0) {
+      playbackTime = 0;
     }
-    const maxTime = (this.seekBar.max - (typeof timeOffset == "undefined" ? 0 : timeOffset)) * 1000;
+    const maxTime = (this.duration - (typeof timeOffset == "undefined" ? 0 : timeOffset)) * 1000;
 
-    const currentElid = this.spos.events.findIndex(event => event.position > currentTime) - 1;
+    const currentElid = this.spos.events.findIndex(event => event.position > playbackTime) - 1;
     const currentEvent = this.spos.events[currentElid] || this.spos.events[this.spos.events.length - 1];
     const currentPosition = currentEvent.position;
     const nextEvent = this.spos.events[currentElid + 1];
@@ -385,7 +387,7 @@ class Player {
     const nextPage = nextElement ? nextElement.page : currentPage;
     const nextX = nextElement && nextY == currentY && nextPage == currentPage ? nextElement.x : 30954;
 
-    const x = currentX + (nextX - currentX) * (currentTime - currentPosition) / (nextPosition - currentPosition);
+    const x = currentX + (nextX - currentX) * (playbackTime - currentPosition) / (nextPosition - currentPosition);
     const y = currentY;
 
     // Safari は SVG 画像の naturalWidth, naturalHeight を正しく取得できないらしい
