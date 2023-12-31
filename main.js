@@ -156,15 +156,16 @@ class Player {
         });
         this.audioElems.push(audio);
         
+        const gainNode = this.audioContext.createGain();
+        gainNode.connect(this.audioContext.destination);
+        this.gainNodes.push(gainNode);
+
+        const tableBody = document.getElementById("volumeControls");
+        tableBody.appendChild(this.createVolumeControls(gainNode, i));
+        
         audio.addEventListener("loadedmetadata", () => {
           const source = this.audioContext.createMediaElementSource(audio);
-          const gainNode = this.audioContext.createGain();
-          this.gainNodes.push(gainNode);
           source.connect(gainNode);
-          gainNode.connect(this.audioContext.destination);
-          
-          const tableBody = document.getElementById("volumeControls");
-          tableBody.appendChild(this.createVolumeControls(gainNode, i));
           
           if (i == 0) {
             // 最初の音データの長さを基準の長さとする
