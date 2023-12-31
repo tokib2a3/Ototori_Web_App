@@ -460,6 +460,7 @@ class Player {
   }
 
   handleVisibilityChange() {
+    this.updateDisplay();
     if (this.wakeLock == null && document.visibilityState == "visible" && this.isPlaying) {
       this.requestWakeLock();
     }
