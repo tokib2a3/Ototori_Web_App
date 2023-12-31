@@ -5,9 +5,7 @@ class Player {
     this.isPlaying = false;
     this.isLoopEnabled = false;
     this.gainNodes = [];
-    this.audioBuffers = [];
-    this.audioSources = [];
-    this.startTime = 0;
+    this.audioElems = [];
     this.playPos = 0;
     this.updateDisplayLoop = null;
     this.wakeLock = null;
@@ -127,83 +125,87 @@ class Player {
     loadingMessage.textContent = `音ファイルを読み込み中 (0 / ${audios.length})`;
     document.body.appendChild(loadingMessage);
 
-    // 音ファイルのfetchとデコードを行う関数
-    async function fetchAndDecodeAudio(audio) {
-      const response = await fetch(audio.url);
-      const arrayBuffer = await response.arrayBuffer();
-      const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
-      loadingMessage.innerText = `音ファイルを読み込み中 (${++loadedAudioCount} / ${audios.length})`;
-      return audioBuffer;
-    }
-
-    // 音量調整用のUIを生成する関数
-    function createVolumeControls(gainNode, index) {
-      const fileNameCell = document.createElement("td");
-      fileNameCell.textContent = audios[index].url.split("/").pop().split(".")[0];
-
-      const switchCell = document.createElement("td");
-      const playSwitch = document.createElement("md-switch");
-      playSwitch.selected = audios[index].initialPlay ?? true;
-      playSwitch.addEventListener("change", (event) => {
-        if (event.target.selected) {
-          gainNode.gain.value = volumeSlider.value / 100;
-          volumeSlider.disabled = false;
-        } else {
-          gainNode.gain.value = 0;
-          volumeSlider.disabled = true;
-        }
-      });
-      switchCell.appendChild(playSwitch);
-
-      const volumeCell = document.createElement("td");
-      const volumeSlider = document.createElement("md-slider");
-      volumeSlider.disabled = !playSwitch.selected;
-      volumeSlider.labeled = true;
-      volumeSlider.max = 127;
-      volumeSlider.value = audios[index].initialVolume ?? 80;
-      gainNode.gain.value = playSwitch.selected ? volumeSlider.value / 100 : 0;
-      volumeSlider.addEventListener("input", (event) => {
-        gainNode.gain.value = event.target.value / 100;
-      });
-      volumeCell.appendChild(volumeSlider);
-
-      const row = document.createElement("tr");
-      row.appendChild(fileNameCell);
-      row.appendChild(switchCell);
-      row.appendChild(volumeCell);
-      return row;
-    }
-
-    // 全ての音声ファイルのfetchとデコードを行い、AudioBufferを配列で取得
-    Promise.all(audios.map(fetchAndDecodeAudio.bind(this)))
-      .then(buffers => {
-        // seekBarの最大値を最初の音声データの長さに設定
-        this.seekBar.max = buffers[0].duration;
-        // maxTime の更新
-        this.maxTime.innerText = this.formatTime(buffers[0].duration);
-
-        const tableBody = document.getElementById("volumeControls");
-        // 各音声データに対応するgainNodeを生成し、音声ファイルのAudioBufferとセットで配列に追加
-        buffers.forEach((buffer, index) => {
+    // 音ファイルを読み込む
+    try {
+      for (let i = 0; i < audios.length; i++) {
+        const audio = new Audio(audios[i].url);
+        audio.load();
+        audio.addEventListener("canplaythrough", () => {
+          loadedAudioCount++;
+          loadingMessage.textContent = `音ファイルを読み込み中 (${loadedAudioCount} / ${audios.length})`;
+          if (loadedAudioCount == audios.length) {
+            // 全ての音声ファイルの読み込みが完了したら、loadingMessageを削除してUIを有効化
+            document.body.removeChild(loadingMessage);
+            this.playPauseButton.disabled = false;
+            this.seekBar.disabled = false;
+          }
+        });
+        this.audioElems.push(audio);
+        
+        audio.addEventListener("loadedmetadata", () => {
+          const source = this.audioContext.createMediaElementSource(audio);
           const gainNode = this.audioContext.createGain();
           this.gainNodes.push(gainNode);
-          this.audioBuffers.push(buffer);
+          source.connect(gainNode);
+          gainNode.connect(this.audioContext.destination);
+          
+          const tableBody = document.getElementById("volumeControls");
+          tableBody.appendChild(this.createVolumeControls(gainNode, i));
+          
+          if (i == 0) {
+            // seekBar の最大値を最初の音声データの長さに設定
+            this.seekBar.max = audio.duration;
+            // maxTime を更新
+            this.maxTime.innerText = this.formatTime(audio.duration);
 
-          tableBody.appendChild(createVolumeControls(gainNode, index))
-        });
-      })
-      .then(() => {
-        // 音声ファイルの読み込みが完了したら、loadingMessageを削除
-        document.body.removeChild(loadingMessage);
-        this.playPauseButton.disabled = false;
-        this.seekBar.disabled = false;
-      })
-      .catch(error => {
-        // エラーが発生した場合にエラーメッセージを表示する
-        const errorMessage = document.createElement("p");
-        errorMessage.textContent = "ファイルの読み込みに失敗しました: " + error.toString();
-        document.body.insertBefore(errorMessage, loadingMessage);
-      });
+            // 再生終了時にループ
+            audio.addEventListener("ended", () => this.handlePlaybackEnd());
+          }
+        }, {once: true});
+      }
+    } catch (error) {
+      // エラーが発生した場合にエラーメッセージを表示する
+      const errorMessage = document.createElement("p");
+      errorMessage.textContent = "ファイルの読み込みに失敗しました: " + error.toString();
+      document.body.insertBefore(errorMessage, loadingMessage);
+    }
+  }
+
+  createVolumeControls(gainNode, index) {
+    const fileNameCell = document.createElement("td");
+    fileNameCell.textContent = audios[index].url.split("/").pop().split(".")[0];
+
+    const switchCell = document.createElement("td");
+    const playSwitch = document.createElement("md-switch");
+    playSwitch.selected = audios[index].initialPlay ?? true;
+    playSwitch.addEventListener("change", (event) => {
+      if (event.target.selected) {
+        gainNode.gain.value = volumeSlider.value / 100;
+        volumeSlider.disabled = false;
+      } else {
+        gainNode.gain.value = 0;
+        volumeSlider.disabled = true;
+      }
+    });
+    switchCell.appendChild(playSwitch);
+
+    const volumeCell = document.createElement("td");
+    const volumeSlider = document.createElement("md-slider");
+    volumeSlider.disabled = !playSwitch.selected;
+    volumeSlider.labeled = true;
+    volumeSlider.max = 127;
+    volumeSlider.value = audios[index].initialVolume ?? 80;
+    gainNode.gain.value = playSwitch.selected ? volumeSlider.value / 100 : 0;
+    volumeSlider.addEventListener("input", (event) => {
+      gainNode.gain.value = event.target.value / 100;
+    });
+    volumeCell.appendChild(volumeSlider);
+
+    const row = document.createElement("tr");
+    row.appendChild(fileNameCell);
+    row.appendChild(switchCell);
+    row.appendChild(volumeCell);
+    return row;
   }
 
   setupImage() {
@@ -230,7 +232,7 @@ class Player {
         image.src = url;
       }));
       return Promise.all(promises);
-    })();    
+    })();
 
     // spos データを読み込み
     fetch("./score/spos.xml")
@@ -267,37 +269,32 @@ class Player {
         });
       }
       this.stopAudio();
-      this.playPos += this.audioContext.currentTime + 0.1 - this.startTime;
+      this.playPos = this.audioElems[0].currentTime;
     }
   }
 
   playAudio() {
     if (!this.isPlaying) {
       this.isPlaying = true;
-      this.startTime = this.audioContext.currentTime + 0.1;
+      this.audioContext.resume();
 
-      this.audioSources = this.audioBuffers.map((buffer, index) => {
-        const source = this.audioContext.createBufferSource();
-        source.buffer = buffer;
-        source.connect(this.gainNodes[index]);
-        this.gainNodes[index].connect(this.audioContext.destination);
-        source.start(this.startTime, this.playPos);
-        return source;
+      this.audioElems.forEach((audio) => {
+        while (audio.currentTime != this.playPos) {
+          audio.load();
+          audio.currentTime = this.playPos;
+        audio.play();
       });
 
       this.updateDisplayLoop = this.createAnimationFrameLoop(() => this.updateDisplay());
-      setTimeout(() => this.handlePlaybackEnd(), (this.seekBar.max - this.playPos) * 1000);
     }
   }
 
   stopAudio() {
     this.isPlaying = false;
 
-    this.audioSources.forEach(source => {
-      source.stop();
+    this.audioElems.forEach((audio) => {
+      audio.pause();
     });
-
-    this.audioSources = [];
 
     if (this.updateDisplayLoop) {
       cancelAnimationFrame(this.updateDisplayLoop.id);
@@ -344,7 +341,7 @@ class Player {
   }
 
   updateDisplay() {
-    const time = this.audioContext.currentTime + 0.1 - this.startTime + this.playPos;
+    const time = this.audioElems[0].currentTime;
     seekBar.value = time;
     this.currentTime.innerText = this.formatTime(time);
     if (this.hasImage) {
