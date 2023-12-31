@@ -77,7 +77,16 @@ class Player {
       if (this.hasImage) {
         this.updateImage(this.seekBar.value);
       }
+
+      let shouldPlay = false;
+      if (this.isPlaying) {
+        this.stopAudio();
+        shouldPlay = true;
+      }
       this.seekAudio(Number(this.seekBar.value));
+      if (shouldPlay) {
+        this.playAudio();
+      }
     });
         
     this.settingsButton.addEventListener("click", () => {
@@ -297,16 +306,7 @@ class Player {
       this.isPlaying = true;
       this.audioContext.resume();
 
-      let playPromises = this.audioElems.map((audio) => {
-        return new Promise((resolve) => {
-          audio.currentTime = this.currentTime;
-          audio.oncanplaythrough = () => {
-            resolve();
-          };
-        });
-      });
-
-      Promise.all(playPromises).then(() => {
+      this.seekAudio(this.currentTime).then(() => {
         this.audioElems.forEach((audio) => {
           audio.play();
         });
@@ -330,15 +330,16 @@ class Player {
   }
 
   seekAudio(time) {
-    let shouldPlay = false;
-    if (this.isPlaying) {
-      this.stopAudio();
-      shouldPlay = true;
-    }
     this.currentTime = time;
-    if (shouldPlay) {
-      this.playAudio();
-    }
+    let playPromises = this.audioElems.map((audio) => {
+      return new Promise((resolve) => {
+        audio.currentTime = this.currentTime;
+        audio.oncanplaythrough = () => {
+          resolve();
+        };
+      });
+    });
+    return Promise.all(playPromises);
   }
 
   handlePlaybackEnd() {
