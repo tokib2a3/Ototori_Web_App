@@ -216,6 +216,8 @@ function initialize() {
       errorMessage.textContent = "ファイルの読み込みに失敗しました: " + error.toString();
       document.body.insertBefore(errorMessage, loadingMessage);
     });
+  
+  let playbackEndTimeout;
 
   function playAudio() {
     if (!isPlaying) {
@@ -232,6 +234,7 @@ function initialize() {
       });
 
       updateDisplayLoop = createAnimationFrameLoop(updateDisplay);
+      playbackEndTimeout = setTimeout(handlePlaybackEnd, (seekBar.max - playPos) * 1000);
     }
   }
 
@@ -248,6 +251,7 @@ function initialize() {
       cancelAnimationFrame(updateDisplayLoop.id);
       updateDisplayLoop = null;
     }
+    clearTimeout(playbackEndTimeout);
   }
 
   function seekAudio(time) {
@@ -259,6 +263,19 @@ function initialize() {
     playPos = time;
     if (shouldPlay) {
       playAudio();
+    }
+  }
+
+  function handlePlaybackEnd() {
+    stopAudio();
+    playPos = 0;
+    if (isLoopEnabled) {
+      playAudio();
+    } else {
+      if (wakeLock) {
+        wakeLock.release();
+      }
+      playPauseButton.selected = false;
     }
   }
 
@@ -277,18 +294,6 @@ function initialize() {
     time = audioContext.currentTime + 0.1 - startTime + playPos;
     seekBar.value = time;
     currentTime.innerText = formatTime(time);
-    if (time > seekBar.max) {
-      stopAudio();
-      playPos = 0;
-      if (isLoopEnabled) {
-        playAudio();
-      } else {
-        if (wakeLock) {
-          wakeLock.release();
-        }
-        playPauseButton.selected = false;
-      }
-    }
     if (hasImage) {
       updateImage(time);
     }
