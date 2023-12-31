@@ -262,7 +262,9 @@ class Player {
       this.playAudio();
     } else {
       if (this.wakeLock) {
-        this.wakeLock.release();
+        this.wakeLock.release().then(() => {
+          this.wakeLock = null;
+        });
       }
       this.stopAudio();
       this.playPos += this.audioContext.currentTime + 0.1 - this.startTime;
@@ -322,7 +324,9 @@ class Player {
       this.playAudio();
     } else {
       if (this.wakeLock) {
-        this.wakeLock.release();
+        this.wakeLock.release().then(() => {
+          this.wakeLock = null;
+        });
       }
       this.playPauseButton.selected = false;
     }
@@ -447,9 +451,9 @@ class Player {
     }
   }
 
-  async handleVisibilityChange() {
-    if (this.wakeLock != null && document.visibilityState == "visible" && this.isPlaying) {
-      await this.requestWakeLock();
+  handleVisibilityChange() {
+    if (this.wakeLock == null && document.visibilityState == "visible" && this.isPlaying) {
+      this.requestWakeLock();
     }
   };
 }
