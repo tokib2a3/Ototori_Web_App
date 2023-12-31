@@ -47,10 +47,13 @@ class Player {
     this.settingsMenu = document.getElementById("settingsMenu");
     this.settingsButton = document.getElementById("settingsButton");
     this.mixerButton = document.getElementById("mixerButton");
+    this.playbackSpeedButton = document.getElementById("playbackSpeedButton");
     this.loopButton = document.getElementById("loopButton");
     this.loopCheckIcon = document.getElementById("loopCheckIcon");
     this.fullscreenButton = document.getElementById("fullscreenButton");
     this.mixerDialog = document.getElementById("mixerDialog");
+    this.playbackSpeedDialog = document.getElementById("playbackSpeedDialog");
+    this.playbackSpeedSlider = document.getElementById("playbackSpeedSlider");
   }
 
   setupEventListeners() {
@@ -82,6 +85,16 @@ class Player {
 
     this.mixerButton.addEventListener("click", () => {
       this.mixerDialog.show();
+    });
+
+    this.playbackSpeedButton.addEventListener("click", () => {
+      this.playbackSpeedDialog.show();
+    });
+
+    this.playbackSpeedSlider.addEventListener("input", () => {
+      this.audioElems.forEach((audio) => {
+        audio.playbackRate = this.playbackSpeedSlider.value;
+      });
     });
 
     this.loopButton.addEventListener("click", () => {
@@ -279,9 +292,7 @@ class Player {
       this.audioContext.resume();
 
       this.audioElems.forEach((audio) => {
-        while (audio.currentTime != this.playPos) {
-          audio.load();
-          audio.currentTime = this.playPos;
+        audio.currentTime = this.playPos;
         audio.play();
       });
 
