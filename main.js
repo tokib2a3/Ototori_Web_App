@@ -357,7 +357,7 @@ class Player {
 
   updateDisplay() {
     this.currentTime = this.audioElems[0].currentTime;
-    seekBar.value = this.currentTime;
+    this.seekBar.value = this.currentTime;
     this.currentTimeElem.innerText = this.formatTime(this.currentTime);
     if (this.hasImage) {
       this.updateImage(this.currentTime);
