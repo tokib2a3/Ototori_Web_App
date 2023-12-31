@@ -296,12 +296,22 @@ class Player {
       this.isPlaying = true;
       this.audioContext.resume();
 
-      this.audioElems.forEach((audio) => {
-        audio.currentTime = this.currentTime;
-        audio.play();
+      let playPromises = this.audioElems.map((audio) => {
+        return new Promise((resolve) => {
+          audio.currentTime = this.currentTime;
+          audio.oncanplaythrough = () => {
+            resolve();
+          };
+        });
       });
 
-      this.updateDisplayLoop = this.createAnimationFrameLoop(() => this.updateDisplay());
+      Promise.all(playPromises).then(() => {
+        this.audioElems.forEach((audio) => {
+          audio.play();
+        });
+
+        this.updateDisplayLoop = this.createAnimationFrameLoop(() => this.updateDisplay());
+      });
     }
   }
 
