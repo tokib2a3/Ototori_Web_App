@@ -289,6 +289,9 @@ class Player {
   }
 
   playAudio() {
+    if (this.audioElems[0].ended) {
+      this.currentTime = 0;
+    }
     if (!this.isPlaying) {
       this.isPlaying = true;
       this.audioContext.resume();
@@ -329,7 +332,6 @@ class Player {
 
   handlePlaybackEnd() {
     this.stopAudio();
-    this.currentTime = 0;
     if (this.isLoopEnabled) {
       this.playAudio();
     } else {
