@@ -61,7 +61,7 @@ class Player {
     this.playPauseButton.addEventListener("click", () => {
       this.togglePlayPause();
     });
-      
+
     this.seekBar.addEventListener("input", () => {
       if (this.updateDisplayLoop) {
         cancelAnimationFrame(this.updateDisplayLoop.id);
@@ -88,7 +88,7 @@ class Player {
         this.playAudio();
       }
     });
-        
+
     this.settingsButton.addEventListener("click", () => {
       this.settingsMenu.open = !this.settingsMenu.open;
     });
@@ -130,7 +130,7 @@ class Player {
     this.playerArea.addEventListener("click", () => this.handleUserActivity());
 
     document.addEventListener("visibilitychange", () => this.handleVisibilityChange());
-    
+
     // 画面リサイズ時にカーソルを再配置
     if (this.hasImage) {
       window.addEventListener("resize", () => {
@@ -151,7 +151,7 @@ class Player {
     // 音ファイルを読み込む
     try {
       for (let i = 0; i < audios.length; i++) {
-        const audio = new Audio(audios[i].url);
+        const audio = new Audio("/file?path=" + location.pathname.split("/").slice(2, -1).join("/") + "/audio/" + audios[i].fileName);
         audio.load();
         audio.addEventListener("canplaythrough", () => {
           loadedAudioCount++;
@@ -164,18 +164,18 @@ class Player {
           }
         });
         this.audioElems.push(audio);
-        
+
         const gainNode = this.audioContext.createGain();
         gainNode.connect(this.audioContext.destination);
         this.gainNodes.push(gainNode);
 
         const tableBody = document.getElementById("volumeControls");
         tableBody.appendChild(this.createVolumeControls(gainNode, i));
-        
+
         audio.addEventListener("loadedmetadata", () => {
           const source = this.audioContext.createMediaElementSource(audio);
           source.connect(gainNode);
-          
+
           if (i == 0) {
             // 最初の音データの長さを基準の長さとする
             this.duration = audio.duration;
@@ -199,7 +199,7 @@ class Player {
 
   createVolumeControls(gainNode, index) {
     const fileNameCell = document.createElement("td");
-    fileNameCell.textContent = audios[index].url.split("/").pop().split(".")[0];
+    fileNameCell.textContent = audios[index].fileName.split(".")[0];
 
     const switchCell = document.createElement("td");
     const playSwitch = document.createElement("md-switch");
@@ -237,7 +237,7 @@ class Player {
   setupImage() {
     // 画像URLの配列を生成
     for (let i = 1; i <= imageCount; i++) {
-      this.imageUrls.push(`./score/score-${i}.svg`);
+      this.imageUrls.push("/file?path=" + location.pathname.split("/").slice(2, -1).join("/") + `/score/score-${i}.svg`);
     }
 
     // 画像表示領域を作成
@@ -261,7 +261,7 @@ class Player {
     })();
 
     // spos データを読み込み
-    fetch("./score/spos.xml")
+    fetch("/file?path=" + location.pathname.split("/").slice(2, -1).join("/") + "/score/spos.xml")
       .then(response => response.text())
       .then(xmlText => {
         const parser = new DOMParser();
@@ -388,7 +388,7 @@ class Player {
     const currentPosition = currentEvent.position;
     const nextEvent = this.spos.events[currentElid + 1];
     const nextPosition = nextEvent ? nextEvent.position : maxTime;
-    
+
     const currentElement = this.spos.elements[currentElid] || this.spos.elements[this.spos.elements.length - 1];
     const nextElement = this.spos.elements[currentElid + 1];
 
@@ -415,7 +415,7 @@ class Player {
     this.cursor.style.top = `${y * scale}px`;
     this.cursor.style.width = `${64 * scale}px`;
     this.cursor.style.height = `${sy * scale}px`;
-    
+
     if (this.imgElem.src != this.imageUrls[currentPage]) {
       this.imgElem.src = this.imageUrls[currentPage];
     }
