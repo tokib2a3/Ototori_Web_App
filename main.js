@@ -333,10 +333,10 @@ class Player {
     this.currentTime = time;
     let playPromises = this.audioElems.map((audio) => {
       return new Promise((resolve) => {
-        audio.currentTime = this.currentTime;
-        audio.oncanplaythrough = () => {
+        audio.onseeked = () => {
           resolve();
         };
+        audio.currentTime = this.currentTime;
       });
     });
     return Promise.all(playPromises);
