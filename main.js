@@ -337,6 +337,7 @@ class Player {
           resolve();
         };
         audio.currentTime = this.currentTime;
+        setTimeout(resolve, 1000);
       });
     });
     return Promise.all(playPromises);
