@@ -416,7 +416,7 @@ class Player {
     this.cursor.style.width = `${64 * scale}px`;
     this.cursor.style.height = `${sy * scale}px`;
 
-    if (this.imgElem.src != this.imageUrls[currentPage]) {
+    if (new URL(this.imgElem.src, location.href).href != new URL(this.imageUrls[currentPage], location.href).href) {
       this.imgElem.src = this.imageUrls[currentPage];
     }
   }
