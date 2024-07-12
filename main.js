@@ -162,16 +162,6 @@ class Player {
         });
         audio.load();
 
-        audio.addEventListener("canplaythrough", () => {
-          loadedAudioCount++;
-          loadingMessage.textContent = `音ファイルを読み込み中 (${loadedAudioCount} / ${audios.length})`;
-          if (loadedAudioCount == audios.length) {
-            // 全ての音声ファイルの読み込みが完了したら、loadingMessageを削除してUIを有効化
-            document.body.removeChild(loadingMessage);
-            this.playPauseButton.disabled = false;
-            this.seekBar.disabled = false;
-          }
-        });
         this.audioElems.push(audio);
 
         const gainNode = this.audioContext.createGain();
@@ -182,6 +172,15 @@ class Player {
         tableBody.appendChild(this.createVolumeControls(gainNode, i));
 
         audio.addEventListener("loadedmetadata", () => {
+          loadedAudioCount++;
+          loadingMessage.textContent = `音ファイルを読み込み中 (${loadedAudioCount} / ${audios.length})`;
+          if (loadedAudioCount == audios.length) {
+            // 全ての音声ファイルの読み込みが完了したら、loadingMessageを削除してUIを有効化
+            document.body.removeChild(loadingMessage);
+            this.playPauseButton.disabled = false;
+            this.seekBar.disabled = false;
+          }
+
           const source = this.audioContext.createMediaElementSource(audio);
           source.connect(gainNode);
 
