@@ -1,4 +1,4 @@
-const CACHE_NAME = "app-v3.1.0";
+const CACHE_NAME = "app-v3.2.2";
 const APP_FILES = [
   "/ototori/assets/player.html",
   "/ototori/assets/common.css",
