@@ -155,7 +155,13 @@ class Player {
     try {
       for (let i = 0; i < audios.length; i++) {
         const audio = new Audio("/file?path=" + location.pathname.split("/").slice(2, -1).join("/") + "/audio/" + audios[i].fileName);
+        audio.addEventListener("error", (e) => {
+          const errorMessage = document.createElement("p");
+          errorMessage.textContent = "ファイルの読み込みに失敗しました";
+          document.body.insertBefore(errorMessage, loadingMessage);
+        });
         audio.load();
+
         audio.addEventListener("canplaythrough", () => {
           loadedAudioCount++;
           loadingMessage.textContent = `音ファイルを読み込み中 (${loadedAudioCount} / ${audios.length})`;
