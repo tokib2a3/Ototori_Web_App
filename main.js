@@ -52,6 +52,9 @@ class Player {
     this.loopButton = document.getElementById("loopButton");
     this.loopCheckIcon = document.getElementById("loopCheckIcon");
     this.fullscreenButton = document.getElementById("fullscreenButton");
+    if (!this.hasImage) {
+    	this.fullscreenButton.remove();
+    }
     this.mixerDialog = document.getElementById("mixerDialog");
     this.playbackSpeedDialog = document.getElementById("playbackSpeedDialog");
     this.playbackSpeedSlider = document.getElementById("playbackSpeedSlider");
