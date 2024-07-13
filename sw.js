@@ -18,6 +18,7 @@ self.addEventListener("install", (e) => {
       // console.log("[Service Worker] Caching all: app shell and content");
       return cache.addAll(APP_FILES);
     }),
+    self.skipWaiting()
   );
 });
 
@@ -71,7 +72,7 @@ self.addEventListener("fetch", (e) => {
           cache.put(e.request, response.clone());
           return response;
         });
-      }).catch(() => {        
+      }).catch(() => {
         // console.log("[Service Worker] Caching new resource: " + e.request.url);
         return caches.match(e.request);
       }),
