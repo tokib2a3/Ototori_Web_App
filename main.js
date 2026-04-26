@@ -265,7 +265,10 @@ class Player {
   }
 
   createVolumeControls(gainNode, index) {
-    const fileName = audios[index].fileName.split(".")[0];
+    let rawName = audios[index].fileName;
+    let fileNameWithExt = rawName.substring(rawName.lastIndexOf("/") + 1);
+    let dotIndex = fileNameWithExt.lastIndexOf(".");
+    const fileName = dotIndex != -1 ? fileNameWithExt.substring(0, dotIndex) : fileNameWithExt;
     const mixState = this.initialMix ? this.initialMix[fileName] : null;
 
     let initialPlay = audios[index].initialPlay ?? true;
@@ -361,7 +364,10 @@ class Player {
     for (let i = 0; i < this.mixerControls.length; i++) {
       const c = this.mixerControls[i];
       const audioDef = audios[i];
-      const fileName = audioDef.fileName.split(".")[0];
+      let rawName = audioDef.fileName;
+      let fileNameWithExt = rawName.substring(rawName.lastIndexOf("/") + 1);
+      let dotIndex = fileNameWithExt.lastIndexOf(".");
+      const fileName = dotIndex != -1 ? fileNameWithExt.substring(0, dotIndex) : fileNameWithExt;
       const defaultPlay = audioDef.initialPlay ?? true;
       const defaultVol = audioDef.initialVolume ?? 80;
 
