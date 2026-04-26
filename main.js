@@ -15,7 +15,22 @@ class Player {
     this.imageUrls = [];
     this.spos = {};
     this.imgElem = null;
-    this.loadedAudioCount = 0;
+    this.mixerControls = [];
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const mixParam = urlParams.get("mix");
+    this.initialMix = {};
+    if (mixParam) {
+      mixParam.split(",").forEach(part => {
+        const [name, p, v] = part.split(":");
+        if (name) {
+          this.initialMix[name] = {
+            play: p == "1",
+            volume: v != null ? parseInt(v) : null
+          };
+        }
+      });
+    }
 
     if (this.playerArea) {
       document.addEventListener("DOMContentLoaded", () => this.initialize());
@@ -246,8 +261,16 @@ class Player {
 
   createVolumeControls(gainNode, index) {
     const fileName = audios[index].fileName.split(".")[0];
-    const initialPlay = audios[index].initialPlay ?? true;
-    const initialVolume = audios[index].initialVolume ?? 80;
+    const mixState = this.initialMix ? this.initialMix[fileName] : null;
+
+    let initialPlay = audios[index].initialPlay ?? true;
+    if (mixState && mixState.play != undefined) {
+      initialPlay = mixState.play;
+    }
+    let initialVolume = audios[index].initialVolume ?? 80;
+    if (mixState && mixState.volume != undefined && mixState.volume != null) {
+      initialVolume = mixState.volume;
+    }
 
     const createRow = () => {
       const fileNameCell = document.createElement("td");
@@ -302,13 +325,64 @@ class Player {
       }
     };
 
-    dialogControls.playSwitch.addEventListener("change", (event) => setPlayState(event.target.selected));
-    bottomControls.playSwitch.addEventListener("change", (event) => setPlayState(event.target.selected));
+    dialogControls.playSwitch.addEventListener("change", (event) => {
+      setPlayState(event.target.selected);
+      this.updateMixerUrlParams();
+    });
+    bottomControls.playSwitch.addEventListener("change", (event) => {
+      setPlayState(event.target.selected);
+      this.updateMixerUrlParams();
+    });
 
-    dialogControls.volumeSlider.addEventListener("input", (event) => setVolume(event.target.value));
-    bottomControls.volumeSlider.addEventListener("input", (event) => setVolume(event.target.value));
+    dialogControls.volumeSlider.addEventListener("input", (event) => {
+      setVolume(event.target.value);
+      this.updateMixerUrlParams();
+    });
+    bottomControls.volumeSlider.addEventListener("input", (event) => {
+      setVolume(event.target.value);
+      this.updateMixerUrlParams();
+    });
+
+    this.mixerControls.push({
+      playSwitch: dialogControls.playSwitch,
+      volumeSlider: dialogControls.volumeSlider
+    });
 
     return { dialogRow: dialogControls.row, bottomRow: bottomControls.row };
+  }
+
+  updateMixerUrlParams() {
+    const changed = [];
+    for (let i = 0; i < this.mixerControls.length; i++) {
+      const c = this.mixerControls[i];
+      const audioDef = audios[i];
+      const fileName = audioDef.fileName.split(".")[0];
+      const defaultPlay = audioDef.initialPlay ?? true;
+      const defaultVol = audioDef.initialVolume ?? 80;
+
+      const playChanged = c.playSwitch.selected != defaultPlay;
+      const volChanged = String(c.volumeSlider.value) != String(defaultVol);
+
+      if (playChanged || volChanged) {
+        changed.push(`${fileName}:${c.playSwitch.selected ? "1" : "0"}:${c.volumeSlider.value}`);
+      }
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+
+    if (changed.length > 0) {
+      urlParams.set("mix", changed.join(","));
+    } else {
+      urlParams.delete("mix");
+    }
+
+    let newUrl = window.location.pathname;
+    const queryString = urlParams.toString().replace(/%3A/g, ':').replace(/%2C/g, ',');
+    if (queryString) {
+      newUrl += `?${queryString}`;
+    }
+
+    window.history.replaceState({}, "", newUrl);
   }
 
 async setupImage() {
