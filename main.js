@@ -142,25 +142,53 @@ class Player {
     }
   }
 
-  setupAudio() {
-    // 読み込み済みの音声ファイルの数
+// メソッドの前に async を付けるのを忘れないでください
+  async setupAudio() {
+    let downloadedCount = 0;
     let loadedAudioCount = 0;
 
     // 読み込み中メッセージの生成とDOMへの追加
     const loadingMessage = document.createElement("p");
-    loadingMessage.textContent = `音ファイルを読み込み中 (0 / ${audios.length})`;
+    loadingMessage.textContent = `音ファイルを準備中 (0 / ${audios.length})`;
     document.body.appendChild(loadingMessage);
 
-    // 音ファイルを読み込む
     try {
+      // 全ての音声ファイルをダウンロード
+      const fetchPromises = audios.map(async (audioData) => {
+        const audioSrc = "/files/" + location.pathname.split("/").slice(2, -1).join("/") + "/audio/" + audioData.fileName;
+
+        const response = await fetch(audioSrc);
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+
+        const blob = await response.blob();
+
+        // ダウンロード完了ごとにカウントアップしてUI更新
+        downloadedCount++;
+        if (loadingMessage.parentNode) {
+          loadingMessage.textContent = `音ファイルを準備中 (${downloadedCount} / ${audios.length})`;
+        }
+
+        // メモリ上のBlobをURL化して返す
+        return URL.createObjectURL(blob);
+      });
+
+      // 全てのダウンロードが完了するまで待機
+      const objectUrls = await Promise.all(fetchPromises);
+
+      // Audio要素とミキサーをセットアップ
+      const tableBody = document.getElementById("volumeControls");
+
       for (let i = 0; i < audios.length; i++) {
-        const audio = new Audio("/file?path=" + location.pathname.split("/").slice(2, -1).join("/") + "/audio/" + audios[i].fileName);
+        // サーバーURLの代わりに、メモリ上のBlob URLを読み込む
+        const audio = new Audio(objectUrls[i]);
+
         audio.addEventListener("error", (e) => {
           const errorMessage = document.createElement("p");
-          errorMessage.textContent = "ファイルの読み込みに失敗しました";
+          errorMessage.textContent = "音データの展開に失敗しました";
           document.body.insertBefore(errorMessage, loadingMessage);
         });
-        audio.load();
 
         this.audioElems.push(audio);
 
@@ -168,12 +196,11 @@ class Player {
         gainNode.connect(this.audioContext.destination);
         this.gainNodes.push(gainNode);
 
-        const tableBody = document.getElementById("volumeControls");
         tableBody.appendChild(this.createVolumeControls(gainNode, i));
 
         audio.addEventListener("loadedmetadata", () => {
           loadedAudioCount++;
-          loadingMessage.textContent = `音ファイルを読み込み中 (${loadedAudioCount} / ${audios.length})`;
+          loadingMessage.textContent = `音ファイルを展開中 (${loadedAudioCount} / ${audios.length})`;
           if (loadedAudioCount == audios.length) {
             // 全ての音声ファイルの読み込みが完了したら、loadingMessageを削除してUIを有効化
             document.body.removeChild(loadingMessage);
@@ -196,11 +223,13 @@ class Player {
             audio.addEventListener("ended", () => this.handlePlaybackEnd());
           }
         }, {once: true});
+
+        audio.load();
       }
     } catch (error) {
       // エラーが発生した場合にエラーメッセージを表示する
       const errorMessage = document.createElement("p");
-      errorMessage.textContent = "ファイルの読み込みに失敗しました: " + error.toString();
+      errorMessage.textContent = "音データの取得に失敗しました: " + error.toString();
       document.body.insertBefore(errorMessage, loadingMessage);
     }
   }
@@ -245,7 +274,7 @@ class Player {
   setupImage() {
     // 画像URLの配列を生成
     for (let i = 1; i <= imageCount; i++) {
-      this.imageUrls.push("/file?path=" + location.pathname.split("/").slice(2, -1).join("/") + `/score/score-${i}.svg`);
+      this.imageUrls.push("/files/" + location.pathname.split("/").slice(2, -1).join("/") + `/score/score-${i}.svg`);
     }
 
     // 画像表示領域を作成
@@ -269,7 +298,7 @@ class Player {
     })();
 
     // spos データを読み込み
-    fetch("/file?path=" + location.pathname.split("/").slice(2, -1).join("/") + "/score/spos.xml")
+    fetch("/files/" + location.pathname.split("/").slice(2, -1).join("/") + "/score/spos.xml")
       .then(response => response.text())
       .then(xmlText => {
         const parser = new DOMParser();
