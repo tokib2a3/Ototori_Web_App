@@ -271,53 +271,60 @@ class Player {
     return row;
   }
 
-  setupImage() {
-    // 画像URLの配列を生成
-    for (let i = 1; i <= imageCount; i++) {
-      this.imageUrls.push("/files/" + location.pathname.split("/").slice(2, -1).join("/") + `/score/score-${i}.svg`);
-    }
-
-    // 画像表示領域を作成
+async setupImage() {
     const imageArea = document.getElementById("imageArea");
     this.imgElem = document.createElement("img");
-    this.imgElem.src = this.imageUrls[0];
     this.imgElem.oncontextmenu = () => { return false; };
     this.imgElem.onselectstart = () => { return false; };
     this.imgElem.onmousedown = () => { return false; };
     imageArea.appendChild(this.imgElem);
 
-    // 画像を非同期にプリロード
-    (async () => {
-      const promises = this.imageUrls.map(url => new Promise((resolve, reject) => {
-        const image = new Image();
-        image.onload = resolve;
-        image.onerror = reject;
-        image.src = url;
+    try {
+      // 画像の Blob 化と URL 生成
+      const fetchPromises = [];
+      for (let i = 1; i <= imageCount; i++) {
+        const url = "/files/" + location.pathname.split("/").slice(2, -1).join("/") + `/score/score-${i}.svg`;
+
+        fetchPromises.push(
+          fetch(url).then(async (response) => {
+            if (!response.ok) throw new Error("Image fetch failed");
+            const blob = await response.blob();
+            return URL.createObjectURL(blob);
+          })
+        );
+      }
+
+      // 全ての画像の準備が完了するのを待つ
+      this.imageUrls = await Promise.all(fetchPromises);
+
+      // 最初の画像をセット
+      if (this.imageUrls.length > 0) {
+        this.imgElem.src = this.imageUrls[0];
+      }
+
+      // spos データを読み込み
+      const xmlUrl = "/files/" + location.pathname.split("/").slice(2, -1).join("/") + "/score/spos.xml";
+      const xmlResponse = await fetch(xmlUrl);
+      if (!xmlResponse.ok) throw new Error("XML fetch failed");
+
+      const xmlText = await xmlResponse.text();
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlText, "application/xml");
+
+      this.spos.elements = Array.from(xmlDoc.querySelectorAll("score > elements > element"), (element) => ({
+        x: parseInt(element.getAttribute("x")),
+        y: parseInt(element.getAttribute("y")),
+        sy: parseFloat(element.getAttribute("sy")),
+        page: parseInt(element.getAttribute("page"))
       }));
-      return Promise.all(promises);
-    })();
 
-    // spos データを読み込み
-    fetch("/files/" + location.pathname.split("/").slice(2, -1).join("/") + "/score/spos.xml")
-      .then(response => response.text())
-      .then(xmlText => {
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(xmlText, "application/xml");
+      this.spos.events = Array.from(xmlDoc.querySelectorAll("score > events > event"), (event) => ({
+        position: parseInt(event.getAttribute("position"))
+      }));
 
-        this.spos.elements = Array.from(xmlDoc.querySelectorAll("score > elements > element"), (element) => ({
-          x: parseInt(element.getAttribute("x")),
-          y: parseInt(element.getAttribute("y")),
-          sy: parseFloat(element.getAttribute("sy")),
-          page: parseInt(element.getAttribute("page"))
-        }));
-
-        this.spos.events = Array.from(xmlDoc.querySelectorAll("score > events > event"), (event) => ({
-          position: parseInt(event.getAttribute("position"))
-        }));
-      })
-      .catch(error => {
-        console.error("Error fetching XML:", error);
-      });
+    } catch (error) {
+      console.error("楽譜データの準備に失敗しました:", error);
+    }
   }
 
   // 音の再生関連
