@@ -11,6 +11,7 @@ class Player {
     this.updateDisplayLoop = null;
     this.wakeLock = null;
     this.hasImage = typeof imageCount != "undefined" && imageCount > 0;
+    this.showMixerUnderPlayer = typeof showMixerUnderPlayer != "undefined" ? showMixerUnderPlayer : !this.hasImage;
     this.imageUrls = [];
     this.spos = {};
     this.imgElem = null;
@@ -39,6 +40,7 @@ class Player {
   }
 
   setupUI() {
+    this.playerScreen = document.getElementById("playerScreen");
     this.cursor = document.getElementById("cursor");
     this.controllerArea = document.getElementById("controller");
     this.playPauseButton = document.getElementById("playPauseButton");
@@ -58,6 +60,11 @@ class Player {
     this.mixerDialog = document.getElementById("mixerDialog");
     this.playbackSpeedDialog = document.getElementById("playbackSpeedDialog");
     this.playbackSpeedSlider = document.getElementById("playbackSpeedSlider");
+    this.bottomMixerArea = document.getElementById("bottomMixerArea");
+
+    if (this.showMixerUnderPlayer) {
+      this.bottomMixerArea.style.display = "block";
+    }
   }
 
   setupEventListeners() {
@@ -120,17 +127,17 @@ class Player {
     });
 
     this.fullscreenButton.addEventListener("click", () => {
-      this.toggleFullScreen(this.playerArea);
+      this.toggleFullScreen(this.playerScreen);
     });
 
     document.addEventListener("fullscreenchange", () => {
-      this.fullscreenButton.selected = document.fullscreenElement == this.playerArea;
+      this.fullscreenButton.selected = document.fullscreenElement == this.playerScreen;
     });
 
     // カーソル移動でコントローラー表示・非表示
-    this.playerArea.addEventListener("mousemove", () => this.handleUserActivity());
-    this.playerArea.addEventListener("keydown", () => this.handleUserActivity());
-    this.playerArea.addEventListener("click", () => this.handleUserActivity());
+    this.playerScreen.addEventListener("mousemove", () => this.handleUserActivity());
+    this.playerScreen.addEventListener("keydown", () => this.handleUserActivity());
+    this.playerScreen.addEventListener("click", () => this.handleUserActivity());
 
     document.addEventListener("visibilitychange", () => this.handleVisibilityChange());
 
@@ -178,7 +185,8 @@ class Player {
       const objectUrls = await Promise.all(fetchPromises);
 
       // Audio要素とミキサーをセットアップ
-      const tableBody = document.getElementById("volumeControls");
+      const dialogTableBody = document.getElementById("dialogVolumeControls");
+      const bottomTableBody = document.getElementById("bottomVolumeControls");
 
       for (let i = 0; i < audios.length; i++) {
         // サーバーURLの代わりに、メモリ上のBlob URLを読み込む
@@ -196,7 +204,9 @@ class Player {
         gainNode.connect(this.audioContext.destination);
         this.gainNodes.push(gainNode);
 
-        tableBody.appendChild(this.createVolumeControls(gainNode, i));
+        const controls = this.createVolumeControls(gainNode, i);
+        dialogTableBody.appendChild(controls.dialogRow);
+        bottomTableBody.appendChild(controls.bottomRow);
 
         audio.addEventListener("loadedmetadata", () => {
           loadedAudioCount++;
@@ -235,40 +245,70 @@ class Player {
   }
 
   createVolumeControls(gainNode, index) {
-    const fileNameCell = document.createElement("td");
-    fileNameCell.textContent = audios[index].fileName.split(".")[0];
+    const fileName = audios[index].fileName.split(".")[0];
+    const initialPlay = audios[index].initialPlay ?? true;
+    const initialVolume = audios[index].initialVolume ?? 80;
 
-    const switchCell = document.createElement("td");
-    const playSwitch = document.createElement("md-switch");
-    playSwitch.selected = audios[index].initialPlay ?? true;
-    playSwitch.addEventListener("change", (event) => {
-      if (event.target.selected) {
-        gainNode.gain.value = volumeSlider.value / 100;
-        volumeSlider.disabled = false;
-      } else {
-        gainNode.gain.value = 0;
-        volumeSlider.disabled = true;
+    const createRow = () => {
+      const fileNameCell = document.createElement("td");
+      fileNameCell.textContent = fileName;
+
+      const switchCell = document.createElement("td");
+      const playSwitch = document.createElement("md-switch");
+      playSwitch.selected = initialPlay;
+      switchCell.appendChild(playSwitch);
+
+      const volumeCell = document.createElement("td");
+      const volumeSlider = document.createElement("md-slider");
+      volumeSlider.disabled = !playSwitch.selected;
+      volumeSlider.labeled = true;
+      volumeSlider.max = 127;
+      volumeSlider.value = initialVolume;
+      volumeCell.appendChild(volumeSlider);
+
+      const row = document.createElement("tr");
+      row.appendChild(fileNameCell);
+      row.appendChild(switchCell);
+      row.appendChild(volumeCell);
+
+      return { row, playSwitch, volumeSlider };
+    };
+
+    const dialogControls = createRow();
+    const bottomControls = createRow();
+
+    gainNode.gain.value = dialogControls.playSwitch.selected ? dialogControls.volumeSlider.value / 100 : 0;
+
+    const setPlayState = (isPlaying) => {
+      [dialogControls, bottomControls].forEach((controls) => {
+        controls.playSwitch.selected = isPlaying;
+        controls.volumeSlider.disabled = !isPlaying;
+        // Shadow DOM 内の input 要素のプロパティを直接操作して同期ずれに対処
+        if (controls.playSwitch.shadowRoot) {
+          const input = controls.playSwitch.shadowRoot.querySelector("input");
+          if (input) {
+            input.checked = isPlaying;
+          }
+        }
+      });
+      gainNode.gain.value = isPlaying ? dialogControls.volumeSlider.value / 100 : 0;
+    };
+
+    const setVolume = (volume) => {
+      dialogControls.volumeSlider.value = volume;
+      bottomControls.volumeSlider.value = volume;
+      if (dialogControls.playSwitch.selected) {
+        gainNode.gain.value = volume / 100;
       }
-    });
-    switchCell.appendChild(playSwitch);
+    };
 
-    const volumeCell = document.createElement("td");
-    const volumeSlider = document.createElement("md-slider");
-    volumeSlider.disabled = !playSwitch.selected;
-    volumeSlider.labeled = true;
-    volumeSlider.max = 127;
-    volumeSlider.value = audios[index].initialVolume ?? 80;
-    gainNode.gain.value = playSwitch.selected ? volumeSlider.value / 100 : 0;
-    volumeSlider.addEventListener("input", (event) => {
-      gainNode.gain.value = event.target.value / 100;
-    });
-    volumeCell.appendChild(volumeSlider);
+    dialogControls.playSwitch.addEventListener("change", (event) => setPlayState(event.target.selected));
+    bottomControls.playSwitch.addEventListener("change", (event) => setPlayState(event.target.selected));
 
-    const row = document.createElement("tr");
-    row.appendChild(fileNameCell);
-    row.appendChild(switchCell);
-    row.appendChild(volumeCell);
-    return row;
+    dialogControls.volumeSlider.addEventListener("input", (event) => setVolume(event.target.value));
+    bottomControls.volumeSlider.addEventListener("input", (event) => setVolume(event.target.value));
+
+    return { dialogRow: dialogControls.row, bottomRow: bottomControls.row };
   }
 
 async setupImage() {
@@ -305,7 +345,9 @@ async setupImage() {
       // spos データを読み込み
       const xmlUrl = "/files/" + location.pathname.split("/").slice(2, -1).join("/") + "/score/spos.xml";
       const xmlResponse = await fetch(xmlUrl);
-      if (!xmlResponse.ok) throw new Error("XML fetch failed");
+      if (!xmlResponse.ok) {
+        throw new Error("XML fetch failed");
+      }
 
       const xmlText = await xmlResponse.text();
       const parser = new DOMParser();

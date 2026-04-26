@@ -1,39 +1,41 @@
-<div id="imageArea">
-  <div id="cursor"></div>
-</div>
-<div id="controller">
-  <md-icon-button id="playPauseButton" toggle disabled>
-    <md-icon>play_arrow</md-icon>
-    <md-icon slot="selected">pause</md-icon>
-  </md-icon-button>
-  <div id="time">
-    <span id="currentTime">0:00</span> / <span id="maxTime">0:00</span>
+<div id="playerScreen">
+  <div id="imageArea">
+    <div id="cursor"></div>
   </div>
-  <md-slider id="seekBar" value="0" step="0.1" disabled></md-slider>
-  <div id="settingsWrapper">
-    <md-icon-button id="settingsButton">
-      <md-icon>settings</md-icon>
+  <div id="controller">
+    <md-icon-button id="playPauseButton" toggle disabled>
+      <md-icon>play_arrow</md-icon>
+      <md-icon slot="selected">pause</md-icon>
     </md-icon-button>
-    <md-menu id="settingsMenu" anchor="settingsButton">
-      <md-menu-item id="mixerButton">
-        ミキサー
-        <md-icon slot="start">instant_mix</md-icon>
-      </md-menu-item>
-      <md-menu-item id="playbackSpeedButton">
-        再生速度
-        <md-icon slot="start">slow_motion_video</md-icon>
-      </md-menu-item>
-      <md-menu-item id="loopButton">
-        ループ
-        <md-icon slot="start">repeat</md-icon>
-        <md-icon id="loopCheckIcon" slot="null">check</md-icon>
-      </md-menu-item>
-    </md-menu>
+    <div id="time">
+      <span id="currentTime">0:00</span> / <span id="maxTime">0:00</span>
+    </div>
+    <md-slider id="seekBar" value="0" step="0.1" disabled></md-slider>
+    <div id="settingsWrapper">
+      <md-icon-button id="settingsButton">
+        <md-icon>settings</md-icon>
+      </md-icon-button>
+      <md-menu id="settingsMenu" anchor="settingsButton">
+        <md-menu-item id="mixerButton">
+          ミキサー
+          <md-icon slot="start">instant_mix</md-icon>
+        </md-menu-item>
+        <md-menu-item id="playbackSpeedButton">
+          再生速度
+          <md-icon slot="start">slow_motion_video</md-icon>
+        </md-menu-item>
+        <md-menu-item id="loopButton">
+          ループ
+          <md-icon slot="start">repeat</md-icon>
+          <md-icon id="loopCheckIcon" slot="null">check</md-icon>
+        </md-menu-item>
+      </md-menu>
+    </div>
+    <md-icon-button id="fullscreenButton">
+      <md-icon>fullscreen</md-icon>
+      <md-icon slot="selected">fullscreen_exit</md-icon>
+    </md-icon-button>
   </div>
-  <md-icon-button id="fullscreenButton">
-    <md-icon>fullscreen</md-icon>
-    <md-icon slot="selected">fullscreen_exit</md-icon>
-  </md-icon-button>
 </div>
 <md-dialog id="mixerDialog">
   <div slot="headline">ミキサー</div>
@@ -46,7 +48,7 @@
           <th>音量</th>
         </tr>
       </thead>
-      <tbody id="volumeControls">
+      <tbody id="dialogVolumeControls">
       </tbody>
     </table>
   </form>
@@ -63,3 +65,17 @@
     <md-text-button form="playbackSpeed">OK</md-text-button>
   </div>
 </md-dialog>
+<div id="bottomMixerArea">
+  <h2>ミキサー</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>パート</th>
+        <th>再生</th>
+        <th>音量</th>
+      </tr>
+    </thead>
+    <tbody id="bottomVolumeControls">
+    </tbody>
+  </table>
+</div>

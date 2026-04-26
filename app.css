@@ -1,4 +1,4 @@
-#player {
+#playerScreen {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -46,6 +46,10 @@ img {
 
 md-menu-item {
   word-break: keep-all;
+}
+
+#bottomMixerArea {
+  display: none;
 }
 
 #cursor {
