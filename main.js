@@ -183,8 +183,7 @@ class Player {
       // 全ての音声ファイルをダウンロード
       const fetchPromises = audios.map(async (audioData) => {
         const audioSrc = this.audioDirPath + "/" + audioData.fileName;
-
-        const response = await fetch(audioSrc);
+        const response = await fetch(audioSrc, { priority: "high" });
         if (!response.ok) {
           throw new Error("Network response was not ok");
         }
@@ -407,47 +406,52 @@ async setupImage() {
     try {
       // 画像の Blob 化と URL 生成
       const fetchPromises = [];
+      this.imageUrls = new Array(imageCount);
       for (let i = 1; i <= imageCount; i++) {
         const url = this.scoreDirPath + `/score-${i}.svg`;
 
-        fetchPromises.push(
-          fetch(url).then(async (response) => {
-            if (!response.ok) throw new Error("Image fetch failed");
-            const blob = await response.blob();
-            return URL.createObjectURL(blob);
-          })
-        );
+        // 最初の2ページ分は優先度高く設定
+        const fetchOptions = i <= 2 ? { priority: "high" } : { priority: "low" };
+        const promise = fetch(url, fetchOptions).then(async (response) => {
+          if (!response.ok) throw new Error("Image fetch failed");
+          const blob = await response.blob();
+          const objectUrl = URL.createObjectURL(blob);
+          this.imageUrls[i - 1] = objectUrl;
+          // 最初の画像が取得できたらすぐに表示する
+          if (i === 1) {
+            this.imgElem.src = objectUrl;
+          }
+          return objectUrl;
+        });
+        fetchPromises.push(promise);
       }
 
-      // 全ての画像の準備が完了するのを待つ
-      this.imageUrls = await Promise.all(fetchPromises);
+      // spos データの読み込みを非同期で開始
+      const sposPromise = (async () => {
+        const xmlUrl = this.scoreDirPath + "/spos.xml";
+        const xmlResponse = await fetch(xmlUrl, { priority: "high" });
+        if (!xmlResponse.ok) {
+          throw new Error("XML fetch failed");
+        }
 
-      // 最初の画像をセット
-      if (this.imageUrls.length > 0) {
-        this.imgElem.src = this.imageUrls[0];
-      }
+        const xmlText = await xmlResponse.text();
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(xmlText, "application/xml");
 
-      // spos データを読み込み
-      const xmlUrl = this.scoreDirPath + "/spos.xml";
-      const xmlResponse = await fetch(xmlUrl);
-      if (!xmlResponse.ok) {
-        throw new Error("XML fetch failed");
-      }
+        this.spos.elements = Array.from(xmlDoc.querySelectorAll("score > elements > element"), (element) => ({
+          x: parseInt(element.getAttribute("x")),
+          y: parseInt(element.getAttribute("y")),
+          sy: parseFloat(element.getAttribute("sy")),
+          page: parseInt(element.getAttribute("page"))
+        }));
 
-      const xmlText = await xmlResponse.text();
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(xmlText, "application/xml");
+        this.spos.events = Array.from(xmlDoc.querySelectorAll("score > events > event"), (event) => ({
+          position: parseInt(event.getAttribute("position"))
+        }));
+      })();
 
-      this.spos.elements = Array.from(xmlDoc.querySelectorAll("score > elements > element"), (element) => ({
-        x: parseInt(element.getAttribute("x")),
-        y: parseInt(element.getAttribute("y")),
-        sy: parseFloat(element.getAttribute("sy")),
-        page: parseInt(element.getAttribute("page"))
-      }));
-
-      this.spos.events = Array.from(xmlDoc.querySelectorAll("score > events > event"), (event) => ({
-        position: parseInt(event.getAttribute("position"))
-      }));
+      // 全ての画像と spos データの準備が完了するのを待つ
+      await Promise.all([...fetchPromises, sposPromise]);
 
     } catch (error) {
       console.error("楽譜データの準備に失敗しました:", error);
