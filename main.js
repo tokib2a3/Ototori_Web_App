@@ -665,7 +665,7 @@ displayVersion();
 
 // バージョン表示
 function displayVersion() {
-  const version = "3.2.2";
+  const version = "3.3.0";
   const versionElement = document.createElement("a");
   versionElement.id = "version";
   versionElement.href = "/ototori/changelog";
