@@ -1,6 +1,11 @@
 class Player {
   constructor(playerAreaId) {
     this.playerArea = document.getElementById(playerAreaId);
+
+    this.baseDirPath = typeof baseDirPath != "undefined" ? baseDirPath : "/files/" + location.pathname.split("/").slice(2, -1).join("/");
+    this.audioDirPath = this.baseDirPath + (typeof audioDirPath != "undefined" ? audioDirPath : "/audio");
+    this.scoreDirPath = this.baseDirPath + (typeof scoreDirPath != "undefined" ? scoreDirPath : "/score");
+
     this.audioContext = new AudioContext();
     this.isPlaying = false;
     this.isLoopEnabled = false;
@@ -177,7 +182,7 @@ class Player {
     try {
       // 全ての音声ファイルをダウンロード
       const fetchPromises = audios.map(async (audioData) => {
-        const audioSrc = "/files/" + location.pathname.split("/").slice(2, -1).join("/") + "/audio/" + audioData.fileName;
+        const audioSrc = this.audioDirPath + "/" + audioData.fileName;
 
         const response = await fetch(audioSrc);
         if (!response.ok) {
@@ -397,7 +402,7 @@ async setupImage() {
       // 画像の Blob 化と URL 生成
       const fetchPromises = [];
       for (let i = 1; i <= imageCount; i++) {
-        const url = "/files/" + location.pathname.split("/").slice(2, -1).join("/") + `/score/score-${i}.svg`;
+        const url = this.scoreDirPath + `/score-${i}.svg`;
 
         fetchPromises.push(
           fetch(url).then(async (response) => {
@@ -417,7 +422,7 @@ async setupImage() {
       }
 
       // spos データを読み込み
-      const xmlUrl = "/files/" + location.pathname.split("/").slice(2, -1).join("/") + "/score/spos.xml";
+      const xmlUrl = this.scoreDirPath + "/spos.xml";
       const xmlResponse = await fetch(xmlUrl);
       if (!xmlResponse.ok) {
         throw new Error("XML fetch failed");
